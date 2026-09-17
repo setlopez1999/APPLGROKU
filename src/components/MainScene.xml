@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Escena ÚNICA del canal. Ver docs/arquitectura_flujo.md §1.
+
+  Dueña de:
+    - la pila de pantallas (Login → Main → …), que son Groups que se apilan, no escenas nuevas
+    - el nodo Video (único en toda la app; se añadirá con el reproductor)
+    - los Tasks y Timers de la sesión
+    - el onKeyEvent raíz, que resuelve la prioridad del botón Atrás
+
+  Por qué una sola Scene: cambiar de escena en Roku DESTRUYE el árbol de nodos, y con él el nodo
+  Video. Eso rompería el zapping y obligaría a recrear el decodificador en cada navegación — justo
+  lo que docs/BACKEND-GOTCHAS.md §9 dice que hay que evitar.
+-->
+<component name="MainScene" extends="Scene">
+
+  <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+
+  <!-- OBLIGATORIO: en Roku, lo que hay en pkg:/source/ NO está disponible automáticamente dentro de
+       un componente SceneGraph (eso solo vale para el hilo principal, main.brs). Cada componente
+       declara lo que usa. Ver docs/ROKU-GOTCHAS.md §16. -->
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/FlattenCatalog.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/SessionRules.brs" />
+  <script type="text/brightscript" uri="pkg:/source/data/local/Session.brs" />
+
+  <children>
+    <Rectangle id="background" width="1920" height="1080" />
+    <Group id="screenStack" />
+    <Group id="modalLayer" />
+  </children>
+
+</component>

@@ -1,0 +1,16 @@
+{
+  "rootDir": "src",
+  "files": [
+    "manifest",
+    "source/**/*.*",
+    "components/**/*.*",
+    "images/**/*.*",
+    "locale/**/*.*"
+  ],
+  "stagingDir": "out/staging",
+  "outFile": "out/applg-roku.zip",
+  "retainStagingDir": false,
+  "host": "",
+  "password": "",
+  "diagnosticSeverityOverrides": {}
+}

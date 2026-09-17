@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Task genérico para TODAS las llamadas HTTP del canal.
+
+  Existe porque la red NO puede ir en el hilo de render (docs/ROKU-GOTCHAS.md §2): un roUrlTransfer
+  síncrono congela la interfaz y, si tarda, el sistema mata el canal.
+
+  Uso desde un componente:
+      task = CreateObject("roSGNode", "ApiTask")
+      task.observeField("response", "onResponse")
+      task.request = tvApiRequest(tvApiGetWeb2Url(...))
+      task.control = "RUN"
+
+  `response` llega con la forma de tvHttpResponse: { ok, statusCode, body, json, error }.
+-->
+<component name="ApiTask" extends="Task">
+
+  <interface>
+    <field id="request" type="assocarray" />
+    <field id="response" type="assocarray" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/tasks/ApiTask.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
+
+</component>

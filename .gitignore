@@ -1,0 +1,16 @@
+# Generados por scripts/build-isp.js — la fuente de verdad es brands/<isp>/
+src/manifest
+src/source/config/BrandConfig.brs
+src/images/
+
+# Build / herramientas
+node_modules/
+out/
+build/
+*.zip
+*.pkg
+.rooibos/
+
+# Local
+.env
+*.local.json

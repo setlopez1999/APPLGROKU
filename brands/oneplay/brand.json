@@ -1,0 +1,20 @@
+{
+  "id": "oneplay",
+  "name": "Oneplay",
+  "badge": "PE",
+  "version": "1.0.0",
+
+  "baseUrl": "https://oneplay.iptvperu.tv/",
+  "notificationsUrl": "",
+  "notificationsEnabled": false,
+  "isCatchupClient": true,
+
+  "accent": "#2ECC71",
+  "splashColor": "#0B0B0D",
+
+  "tabs": {
+    "home": false,
+    "events": false,
+    "content": false
+  }
+}

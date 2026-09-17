@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  CU-01 — Login. Layout partido de docs/DISENO.md §2.2: marca a la izquierda, formulario a la
+  derecha. Medidas en píxeles de 1920×1080 (los dp del Kotlin ×2, ver DISENO §0).
+
+  El panel del QR del diseño queda fuera por ahora: el login por QR necesita endpoints de backend
+  que no existen (generar el código y hacer polling).
+
+  ⚠ NO VERIFICADO EN DISPOSITIVO. Sin un Roku no se puede comprobar ni el render ni el recorrido del
+  foco, que es justo donde tropezaron los ports de tvOS y Compose.
+-->
+<component name="LoginScreen" extends="Group">
+
+  <interface>
+    <!-- Salida: { userInfo, raw }. MainScene la observa para pasar a la app. -->
+    <field id="session" type="assocarray" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/screens/LoginScreen.brs" />
+  <!-- pkg:/source/ no entra solo en los componentes: hay que declararlo (ROKU-GOTCHAS §16). -->
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/SessionRules.brs" />
+  <script type="text/brightscript" uri="pkg:/source/data/remote/ApiRoutes.brs" />
+  <script type="text/brightscript" uri="pkg:/source/data/local/Session.brs" />
+
+  <children>
+    <Poster id="bg" width="1920" height="1080" />
+    <Rectangle id="scrim" width="1920" height="1080" />
+
+    <!-- ---- Marca (izquierda) ---- -->
+    <Group id="brandSide" translation="[160,400]">
+      <Poster id="logo" width="360" height="120" />
+      <Label id="brandName" translation="[0,140]" font="font:LargeBoldSystemFont" />
+      <Label id="brandTagline" translation="[0,210]" font="font:MediumSystemFont"
+             text="Tu televisión, donde quieras" />
+    </Group>
+
+    <!-- ---- Formulario (derecha) ---- -->
+    <Rectangle id="card" translation="[960,240]" width="800" height="600" />
+
+    <Group id="form" translation="[1020,300]">
+      <Label id="title" font="font:LargeBoldSystemFont" text="Iniciar sesión" />
+      <Label id="subtitle" translation="[0,70]" font="font:SmallSystemFont"
+             text="Ingresa con tus credenciales" />
+
+      <!-- Correo -->
+      <Group id="emailRow" translation="[0,150]">
+        <Rectangle id="emailFocus" translation="[-6,-6]" width="692" height="92" visible="false" />
+        <Rectangle id="emailField" width="680" height="80" />
+        <Label id="emailLabel" translation="[24,12]" font="font:SmallestSystemFont" text="CORREO" />
+        <Label id="emailValue" translation="[24,38]" font="font:MediumSystemFont"
+               text="tu@email.com" />
+      </Group>
+
+      <!-- Contraseña -->
+      <Group id="passwordRow" translation="[0,270]">
+        <Rectangle id="passwordFocus" translation="[-6,-6]" width="692" height="92" visible="false" />
+        <Rectangle id="passwordField" width="680" height="80" />
+        <Label id="passwordLabel" translation="[24,12]" font="font:SmallestSystemFont"
+               text="CONTRASEÑA" />
+        <Label id="passwordValue" translation="[24,38]" font="font:MediumSystemFont" text="" />
+      </Group>
+
+      <!-- Ingresar -->
+      <Group id="submitRow" translation="[0,390]">
+        <Rectangle id="submitFocus" translation="[-6,-6]" width="692" height="92" visible="false" />
+        <Rectangle id="submitButton" width="680" height="80" />
+        <Label id="submitLabel" width="680" height="80" horizAlign="center" vertAlign="center"
+               font="font:MediumBoldSystemFont" text="Ingresar" />
+      </Group>
+
+      <Label id="errorLabel" translation="[0,500]" width="680" wrap="true"
+             font="font:SmallSystemFont" text="" />
+    </Group>
+
+    <!-- Teclado en pantalla: en TV no hay otra forma de escribir -->
+    <Group id="keyboardLayer" visible="false">
+      <Rectangle id="keyboardScrim" width="1920" height="1080" />
+      <Keyboard id="keyboard" translation="[560,300]" />
+      <Label id="keyboardHint" translation="[560,720]" width="800" horizAlign="center"
+             font="font:SmallSystemFont" text="Pulsa ATRÁS para confirmar" />
+    </Group>
+  </children>
+
+</component>

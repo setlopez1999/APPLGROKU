@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Barra superior. docs/DISENO.md §2.3: logo a la izquierda, pestañas al centro, iconos a la derecha.
+  Padding 64 px horizontal / 32 px vertical (los 32/16 dp del Kotlin ×2).
+
+  Las pestañas se dibujan según `tabs`, que resuelve domain/usecase/Tabs.brs (switch de marca ×
+  backend). Si solo queda una visible, no se dibuja ninguna.
+
+  ⚠ NO VERIFICADO EN DISPOSITIVO.
+-->
+<component name="TopNavBar" extends="Group">
+
+  <interface>
+    <field id="tabs" type="assocarray" onChange="onTabsChanged" />
+    <field id="selectedTab" type="string" value="live" onChange="onSelectionChanged" />
+    <!-- Se dispara al elegir algo: nombre de pestaña, "profile", "search" o "mylist" -->
+    <field id="action" type="string" alwaysNotify="true" />
+    <field id="barFocused" type="boolean" value="false" onChange="onSelectionChanged" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/common/TopNavBar.brs" />
+  <!-- pkg:/source/ no entra solo en los componentes: hay que declararlo (ROKU-GOTCHAS §16). -->
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Tabs.brs" />
+
+  <children>
+    <Poster id="logo" translation="[64,26]" width="180" height="60" />
+    <Label id="logoText" translation="[64,34]" font="font:MediumBoldSystemFont" />
+
+    <LayoutGroup id="tabsGroup" translation="[620,34]" layoutDirection="horiz" itemSpacings="[36]" />
+    <LayoutGroup id="iconsGroup" translation="[1520,34]" layoutDirection="horiz" itemSpacings="[28]" />
+  </children>
+
+</component>

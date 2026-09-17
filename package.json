@@ -1,0 +1,19 @@
+{
+  "name": "applg-roku",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TV-Visor — canal Roku (BrightScript/SceneGraph)",
+  "scripts": {
+    "build": "node scripts/build-isp.js",
+    "build:oneplay": "node scripts/build-isp.js oneplay",
+    "deploy": "roku-deploy",
+    "lint": "bsc --project bsconfig.json --create-package false --copy-to-staging false",
+    "audit": "node scripts/audit-streams.js",
+    "test": "node scripts/test.js"
+  },
+  "devDependencies": {
+    "@rokucommunity/brs": "^0.47.6",
+    "brighterscript": "^0.73.5",
+    "roku-deploy": "^3.18.4"
+  }
+}
