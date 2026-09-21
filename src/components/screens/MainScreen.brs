@@ -11,6 +11,7 @@ sub init()
     m.navBar.observeField("action", "onNavAction")
     m.live.observeField("requestFullscreen", "onRequestFullscreen")
     m.live.observeField("blockedReason", "onBlockedReason")
+    m.live.observeField("requestCatchup", "onRequestCatchup")
     m.profileMenu = m.top.findNode("profileMenu")
     m.profileMenu.observeField("action", "onProfileAction")
 
@@ -61,6 +62,10 @@ sub onProfileAction()
         return
     end if
     closeProfileMenu()
+end sub
+
+sub onRequestCatchup()
+    m.top.catchupTarget = m.live.requestCatchup
 end sub
 
 sub onBlockedReason()

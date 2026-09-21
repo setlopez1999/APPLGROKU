@@ -25,7 +25,9 @@ sub onContentChanged()
     ' La lista NO tiene el foco (lo conduce ChannelGrid a mano), así que `focusPercent` siempre
     ' vale 0. El marco lo decide este campo del ContentNode.
     content.observeField("isSelected", "onSelectedChanged")
+    content.observeField("selectedCell", "onSelectedCellChanged")
     m.rowFocus.visible = content.isSelected
+    m.cellNodes = []
 
     m.logo.uri = content.logoUri
     m.number.text = content.numero
@@ -45,8 +47,12 @@ sub onContentChanged()
     if ancho < 120 then ancho = 120
 
     for each cell in cells
-        m.cellsGroup.appendChild(buildCell(cell, ancho))
+        nodo = buildCell(cell, ancho)
+        m.cellsGroup.appendChild(nodo)
+        m.cellNodes.Push(nodo)
     end for
+
+    onSelectedCellChanged()
 end sub
 
 ' Espacio horizontal para las celdas: el ancho de la fila menos la zona del canal (logo+nº+nombre).
@@ -60,6 +66,14 @@ end function
 
 function buildCell(cell as object, ancho as integer) as object
     group = CreateObject("roSGNode", "Group")
+
+    marco = group.createChild("Rectangle")
+    marco.id = "cellFocus"
+    marco.translation = [-4, -4]
+    marco.width = ancho + 8
+    marco.height = 96
+    marco.color = m.brand.focusOutline
+    marco.visible = false
 
     bg = group.createChild("Rectangle")
     bg.width = ancho
@@ -122,4 +136,18 @@ sub onSelectedChanged()
     content = m.top.itemContent
     if content = invalid then return
     m.rowFocus.visible = content.isSelected
+    onSelectedCellChanged()
+end sub
+
+' Marco blanco alrededor de la celda con el foco, con el mismo grosor que el resto de la app.
+sub onSelectedCellChanged()
+    content = m.top.itemContent
+    if content = invalid then return
+    if m.cellNodes = invalid then return
+
+    seleccionada = content.selectedCell
+    for i = 0 to m.cellNodes.Count() - 1
+        marco = m.cellNodes[i].findNode("cellFocus")
+        if marco <> invalid then marco.visible = (i = seleccionada and content.isSelected)
+    end for
 end sub

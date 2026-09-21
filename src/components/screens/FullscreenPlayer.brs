@@ -39,6 +39,41 @@ sub init()
     m.guide = m.global.epg
     m.utcOffset = tvDeviceUtcOffsetSec()
     m.current = invalid
+    m.esGrabacion = false
+end sub
+
+' Reproduce una GRABACION. El zapping queda desactivado: cambiar de canal desde una grabacion no
+' tiene sentido, y ATRAS devuelve al vivo.
+sub onStartCatchup()
+    destino = m.top.catchup
+    if destino = invalid then return
+    if destino.url = "" then return
+
+    m.esGrabacion = true
+    m.current = tvFindChannelByCnId(m.channels, destino.cnId)
+
+    video = m.top.videoNode
+    if video = invalid then return
+
+    applyStreamUserAgent(video)
+    content = CreateObject("roSGNode", "ContentNode")
+    content.url = destino.url
+    content.streamformat = "hls"
+    content.title = destino.titulo
+
+    video.control = "stop"
+    video.content = content
+    video.control = "play"
+    video.visible = true
+
+    if m.current <> invalid
+        m.logo.uri = m.current.imagen
+        m.number.text = Str(m.current.numero).Trim()
+        m.name.text = m.current.nombre
+    end if
+    m.programTitle.text = destino.titulo
+    m.programTime.text = "Grabación"
+    showInfo()
 end sub
 
 sub onStartChannel()
@@ -51,6 +86,10 @@ end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
+
+    ' Durante una grabacion no se zapea: no tendria sentido saltar de canal desde un programa
+    ' grabado. Se sale con ATRAS y se vuelve al vivo.
+    if m.esGrabacion then return false
 
     if key = "down"
         zap(true)

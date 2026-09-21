@@ -28,6 +28,8 @@
     <field id="catalogVersion" type="integer" value="0" onChange="onCatalogVersion" />
     <!-- "premium" / "ip" / "unplayable" cuando un canal no se puede reproducir -->
     <field id="blockedReason" type="string" alwaysNotify="true" />
+    <!-- Grabacion a reproducir a pantalla completa: { url, titulo, cnId } -->
+    <field id="requestCatchup" type="assocarray" alwaysNotify="true" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/LiveScreen.brs" />

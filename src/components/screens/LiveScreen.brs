@@ -21,6 +21,7 @@ sub init()
     m.display.observeField("action", "onDisplayAction")
     m.tabs.observeField("chosenIndex", "onCategoryChosen")
     m.grid.observeField("chosenCnId", "onChannelChosen")
+    m.grid.observeField("chosenCatchup", "onCatchupChosen")
 
     ' Zonas de foco, de arriba abajo. El foco NUNCA se queda atrapado en una: cada componente deja
     ' pasar arriba/abajo y aquí se decide a dónde va (arquitectura_flujo.md §5).
@@ -150,6 +151,7 @@ sub onGuideResponse()
     m.status.text = ""
     refreshGrid()
     refreshInfo()
+    probeCatchup()
 end sub
 
 ' El catalogo cambio de verdad (la revalidacion ya lo ha comprobado). Se repintan categorias y
@@ -201,6 +203,39 @@ function premiumsActuales() as object
     if not tvHasSession(userInfo) then return []
     return userInfo.premiumsAllowed
 end function
+
+' ---- catch-up ----------------------------------------------------------------
+'
+' El flag del backend no basta: hay que SONDEAR (docs/BACKEND-GOTCHAS.md 3). Hasta que la sonda
+' responda, ningun canal cuenta como reproducible y no se dibuja el play.
+
+sub probeCatchup()
+    if not m.brand.isCatchupClient then return
+
+    marcados = []
+    for each channel in m.channels
+        if channel.catchup = 1 then marcados.Push(channel)
+    end for
+    if marcados.Count() = 0 then return
+
+    m.probeTask = CreateObject("roSGNode", "CatchupProbeTask")
+    m.probeTask.observeField("verifiedIds", "onCatchupProbed")
+    m.probeTask.channels = marcados
+    m.probeTask.control = "RUN"
+end sub
+
+sub onCatchupProbed()
+    m.catchupVerified = m.probeTask.verifiedIds
+    ' Se reconstruye la ventana: ahora ya se sabe en que celdas se puede dibujar el play.
+    refreshGrid()
+end sub
+
+sub onCatchupChosen()
+    destino = m.grid.chosenCatchup
+    if destino = invalid then return
+    if destino.url = "" then return
+    m.top.requestCatchup = destino
+end sub
 
 ' ---- CU-13: restriccion por IP -----------------------------------------------
 '

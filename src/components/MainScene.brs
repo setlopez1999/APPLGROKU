@@ -105,6 +105,7 @@ sub onLoginSuccess()
     main.observeField("logout", "onLogout")
     main.observeField("fullscreenCnId", "onRequestFullscreen")
     main.observeField("blockedReason", "onBlockedChannel")
+    main.observeField("catchupTarget", "onRequestCatchup")
     m.mainScreen = main
     replaceStack(main)
 
@@ -145,6 +146,19 @@ sub onRequestFullscreen()
     ' El canal se pone DESPUÉS de apilar: al asignarlo se dispara onStartChannel, que ya necesita
     ' el nodo Video puesto y la pantalla en el árbol.
     player.startCnId = m.mainScreen.fullscreenCnId
+end sub
+
+' Abrir una GRABACION a pantalla completa. Mismo reproductor, distinta url.
+sub onRequestCatchup()
+    destino = m.mainScreen.catchupTarget
+    if destino = invalid then return
+
+    player = CreateObject("roSGNode", "FullscreenPlayer")
+    player.videoNode = m.videoPlayer
+    m.fullscreenPlayer = player
+
+    pushScreen(player, true)
+    player.catchup = destino
 end sub
 
 ' Al salir, "TV en directo" tiene que quedarse en el canal al que se haya zapeado.

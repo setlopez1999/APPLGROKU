@@ -13,6 +13,7 @@
 sub init()
     m.list = m.top.findNode("list")
     m.focusIndex = 0
+    m.cellIndex = -1   ' -1 = el foco esta en el canal, no en una celda
     m.rows = []
 end sub
 
@@ -32,6 +33,8 @@ sub onDataChanged()
             logoUri: channel.imagen
             cnId: channel.cnId
             cells: tvEpgRowForChannel(window, channel.cnId)
+            ' Celda resaltada dentro de la fila (-1 = ninguna)
+            selectedCell: -1
             ' El marco de foco lo pinta la fila leyendo este campo: como la lista no tiene el foco,
             ' no se puede usar su `focusPercent`.
             isSelected: false
@@ -64,7 +67,13 @@ sub applyFocusIndex()
     m.list.jumpToItem = m.focusIndex
 
     for i = 0 to m.rows.Count() - 1
-        m.rows[i].isSelected = (i = m.focusIndex and m.top.gridFocused)
+        enfocada = (i = m.focusIndex and m.top.gridFocused)
+        m.rows[i].isSelected = enfocada
+        if enfocada
+            m.rows[i].selectedCell = m.cellIndex
+        else
+            m.rows[i].selectedCell = -1
+        end if
     end for
 end sub
 
@@ -80,6 +89,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "down"
         if m.focusIndex >= m.rows.Count() - 1 then return false   ' último: la tecla sube a LiveScreen
         m.focusIndex = m.focusIndex + 1
+        m.cellIndex = -1
         applyFocusIndex()
         return true
     end if
@@ -87,17 +97,59 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "up"
         if m.focusIndex <= 0 then return false                    ' primero: sale hacia las categorías
         m.focusIndex = m.focusIndex - 1
+        m.cellIndex = -1
         applyFocusIndex()
         return true
     end if
 
-    if key = "OK"
-        channels = m.top.channels
-        if channels <> invalid and m.focusIndex <= channels.Count() - 1
-            m.top.chosenCnId = channels[m.focusIndex].cnId
+    if key = "right"
+        if m.cellIndex < cellCount() - 1
+            m.cellIndex = m.cellIndex + 1
+            applyFocusIndex()
         end if
         return true
     end if
 
+    if key = "left"
+        if m.cellIndex >= 0
+            m.cellIndex = m.cellIndex - 1
+            applyFocusIndex()
+            return true
+        end if
+        return false   ' ya estaba en el canal: la tecla sale de la parrilla
+    end if
+
+    if key = "OK"
+        channels = m.top.channels
+        if channels = invalid or m.focusIndex > channels.Count() - 1 then return true
+        channel = channels[m.focusIndex]
+
+        ' Sobre una celda PASADA con grabacion comprobada se reproduce la grabacion; en cualquier
+        ' otro caso se sintoniza el canal en vivo (docs/DISENO.md 2.4).
+        celda = currentCell()
+        if celda <> invalid and celda.reproducible
+            m.top.chosenCatchup = { url: celda.catchupUrl, titulo: celda.titulo, cnId: channel.cnId }
+            return true
+        end if
+
+        m.top.chosenCnId = channel.cnId
+        return true
+    end if
+
     return false
+end function
+
+function cellCount() as integer
+    if m.focusIndex > m.rows.Count() - 1 then return 0
+    celdas = m.rows[m.focusIndex].cells
+    if celdas = invalid then return 0
+    return celdas.Count()
+end function
+
+function currentCell() as object
+    if m.cellIndex < 0 then return invalid
+    if m.focusIndex > m.rows.Count() - 1 then return invalid
+    celdas = m.rows[m.focusIndex].cells
+    if celdas = invalid or m.cellIndex > celdas.Count() - 1 then return invalid
+    return celdas[m.cellIndex]
 end function

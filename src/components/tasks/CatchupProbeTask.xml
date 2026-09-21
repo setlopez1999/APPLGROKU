@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Sondea qué canales tienen grabación DE VERDAD.
+
+  Existe porque el flag `catchup` MIENTE (docs/BACKEND-GOTCHAS.md §3): sale de la base de datos del
+  dashboard, lo pone un humano y nadie lo valida contra el servidor de vídeo. Hay canales marcados
+  cuyo directorio es un relay o un failover y no graba nada: devuelven 404 al pulsar el play.
+  Medido en la cuenta de pruebas de Oneplay el 2026-09-21: 4 marcados, **0 con grabación real**.
+
+  Basta UNA sonda por canal: el DVR es binario (§4). Los que fallan devuelven 404 igual a los 5
+  minutos que a las 8 horas, y los que graban responden a cualquier rango. Por eso se pide una
+  ventana corta y reciente, y el resultado se cachea mientras viva el proceso.
+
+  ⚠ NO VERIFICADO EN UN ROKU FÍSICO.
+-->
+<component name="CatchupProbeTask" extends="Task">
+
+  <interface>
+    <!-- Canales a sondear (los que traen catchup = 1) -->
+    <field id="channels" type="array" />
+    <!-- cn_id de los que SÍ tienen grabación -->
+    <field id="verifiedIds" type="array" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/tasks/CatchupProbeTask.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Device.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Time.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Catchup.brs" />
+
+</component>

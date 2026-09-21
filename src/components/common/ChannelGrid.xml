@@ -21,6 +21,8 @@
     <field id="currentCnId" type="integer" value="0" />
     <!-- cn_id del canal elegido -->
     <field id="chosenCnId" type="integer" alwaysNotify="true" />
+    <!-- Grabacion elegida: { url, titulo, cnId }. Vacio = no se eligio ninguna -->
+    <field id="chosenCatchup" type="assocarray" alwaysNotify="true" />
     <field id="gridFocused" type="boolean" value="false" onChange="onGridFocusChanged" />
   </interface>
 

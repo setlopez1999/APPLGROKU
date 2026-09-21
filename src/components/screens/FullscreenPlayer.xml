@@ -15,6 +15,8 @@
   <interface>
     <field id="videoNode" type="node" />
     <field id="startCnId" type="integer" value="0" onChange="onStartChannel" />
+    <!-- Grabacion: { url, titulo, cnId }. Si viene, se reproduce en vez del vivo -->
+    <field id="catchup" type="assocarray" onChange="onStartCatchup" />
     <!-- Canal en el que se queda al salir, para que "TV en directo" se sincronice -->
     <field id="currentCnId" type="integer" value="0" />
   </interface>
