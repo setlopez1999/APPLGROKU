@@ -83,6 +83,26 @@ function tvSessionRemembered() as object
     }
 end function
 
+' ---- PIN parental (CU-14) ---------------------------------------------------
+'
+' Se guarda el sha256 del PIN con el deviceId como sal, nunca el PIN en claro. No es bcrypt, pero
+' bcrypt no existe en Roku (ver domain/usecase/ParentalPin.brs) y para 4 dígitos la diferencia
+' práctica es pequeña: el ataque real es probar 10.000 combinaciones, no romper el hash.
+
+sub tvSetParentalPin(pin as string)
+    tvRegistryWrite("parentalPin", tvSha256Hex(pin + tvRegistryRead("deviceId")))
+end sub
+
+function tvHasParentalPin() as boolean
+    return tvRegistryRead("parentalPin") <> ""
+end function
+
+function tvParentalPinMatches(pin as string) as boolean
+    guardado = tvRegistryRead("parentalPin")
+    if guardado = "" then return false
+    return guardado = tvSha256Hex(pin + tvRegistryRead("deviceId"))
+end function
+
 ' ---- cierre de sesión --------------------------------------------------------
 
 ' Borra todo salvo lo que debe sobrevivir, según las reglas testeadas en SessionRules.

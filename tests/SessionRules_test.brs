@@ -17,11 +17,14 @@ sub testSessionRules()
     tvSuite("SessionRules — qué sobrevive al logout (CU-04)")
 
     sinRecordar = tvKeysToPreserveOnLogout(false)
-    tvAssertEqual(sinRecordar.Count(), 1, "sin recordarme solo sobrevive una clave")
-    tvAssertEqual(sinRecordar[0], "deviceId", "y es el deviceId")
+    tvAssertEqual(sinRecordar.Count(), 2, "sin recordarme sobreviven dos claves")
+    tvAssertEqual(sinRecordar[0], "deviceId", "el deviceId")
+
+    ' Si el PIN parental se borrara al cerrar sesión, cualquiera lo saltaría haciendo logout
+    tvAssertEqual(tvShouldKeepKeyOnLogout("parentalPin", false), true, "y el PIN parental, que si no se saltaría con un logout")
 
     conRecordar = tvKeysToPreserveOnLogout(true)
-    tvAssertEqual(conRecordar.Count(), 4, "con recordarme sobreviven cuatro")
+    tvAssertEqual(conRecordar.Count(), 5, "con recordarme sobreviven cinco")
     tvAssertEqual(tvShouldKeepKeyOnLogout("email", true), true, "el email se conserva si hay recordarme")
     tvAssertEqual(tvShouldKeepKeyOnLogout("email", false), false, "y se borra si no lo hay")
 

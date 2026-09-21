@@ -33,6 +33,9 @@ sub Main()
         ' Canal en emisión, para el heartbeat del dashboard (CU-16)
         currentCnId: 0
 
+        ' CU-14: adultos desbloqueados en esta sesion (se reinicia al cerrar sesion)
+        adultUnlocked: false
+
         ' --- Guía (CU-10) ---
         epg: {}
 

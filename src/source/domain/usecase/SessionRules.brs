@@ -37,7 +37,10 @@ end function
 ' El password de SESIÓN (el que se necesita en cada get-web2) no está aquí: ese se borra siempre.
 ' Son dos cosas distintas con ciclos de vida distintos, y confundirlas es un error clásico.
 function tvKeysToPreserveOnLogout(rememberMe as boolean) as object
-    keys = ["deviceId"]
+    ' El PIN parental sobrevive SIEMPRE, igual que el deviceId. Si se borrase al cerrar sesion,
+    ' cualquiera lo saltaria haciendo logout y volviendo a entrar, que es justo lo que un control
+    ' parental tiene que impedir.
+    keys = ["deviceId", "parentalPin"]
     if rememberMe
         keys.Push("email")
         keys.Push("password")

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  CU-14 — PIN parental. Se usa el mismo teclado en pantalla que el login, en modo oculto: en una TV
+  el PIN lo ve toda la habitación.
+
+  El PIN es LOCAL del aparato, no el `parentlockcode` del backend. El porqué está en
+  domain/usecase/ParentalPin.brs (resumen: es un hash bcrypt y Roku no puede verificarlo).
+
+  ⚠ NO VERIFICADO EN UN ROKU FÍSICO.
+-->
+<component name="PinModal" extends="Group">
+
+  <interface>
+    <!-- "create" (no hay PIN todavía) o "ask" -->
+    <field id="paso" type="string" value="ask" onChange="onPasoChanged" />
+    <!-- "ok" al validar, "cancel" al salir con ATRÁS -->
+    <field id="action" type="string" alwaysNotify="true" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/modals/PinModal.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/ParentalPin.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/SessionRules.brs" />
+  <script type="text/brightscript" uri="pkg:/source/data/local/Session.brs" />
+
+  <children>
+    <Rectangle id="scrim" width="1920" height="1080" />
+    <Rectangle id="panel" translation="[460,180]" width="1000" height="720" />
+
+    <Label id="titulo" translation="[520,230]" width="880" font="font:LargeBoldSystemFont" />
+    <Label id="mensaje" translation="[520,310]" width="880" height="120" wrap="true"
+           font="font:SmallSystemFont" />
+
+    <Keyboard id="teclado" translation="[560,450]" />
+    <Label id="pista" translation="[520,830]" width="880" horizAlign="center"
+           font="font:SmallSystemFont" text="Pulsa ATRÁS para confirmar" />
+    <Label id="error" translation="[520,870]" width="880" horizAlign="center"
+           font="font:MediumSystemFont" />
+  </children>
+
+</component>

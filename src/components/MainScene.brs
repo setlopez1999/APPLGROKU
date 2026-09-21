@@ -38,6 +38,9 @@ sub init()
     m.appModal.observeField("action", "onModalAction")
     m.modalKind = ""
 
+    m.pinModal = m.top.findNode("pinModal")
+    m.pinModal.observeField("action", "onPinAction")
+
     showLogin()
 end sub
 
@@ -129,6 +132,7 @@ sub onLogout()
     tvSessionClear()
     m.global.session = {}
     m.global.isLoggedIn = false
+    m.global.adultUnlocked = false
     m.global.channels = []
     m.global.sections = []
     showLogin()
@@ -206,6 +210,15 @@ sub onBlockedChannel()
     razon = m.mainScreen.blockedReason
     if razon = "" then return
 
+    if razon = "adult"
+        ' El PIN es LOCAL del aparato: el backend manda un hash bcrypt que Roku no puede verificar
+        ' (domain/usecase/ParentalPin.brs). Si aun no hay PIN, el primer paso es crearlo.
+        m.pinModal.paso = tvParentalStep(tvHasParentalPin(), m.global.adultUnlocked)
+        m.pinModal.visible = true
+        m.pinModal.setFocus(true)
+        return
+    end if
+
     if razon = "premium"
         showModal("premium", "Contenido no incluido", "Este canal pertenece a un pack que no esta en tu plan. Para contratarlo, contacta con tu proveedor.")
         return
@@ -219,6 +232,20 @@ sub onBlockedChannel()
     if razon = "unplayable"
         showModal("unplayable", "Canal no disponible", "Este canal no esta disponible en tu plan.")
     end if
+end sub
+
+sub onPinAction()
+    m.pinModal.visible = false
+
+    if m.pinModal.action = "ok"
+        ' Desbloqueado para TODA la sesion: pedir el PIN en cada canal adulto es insufrible con un
+        ' mando (afinado asi en el port a Kotlin). Se reinicia al cerrar sesion.
+        m.global.adultUnlocked = true
+        if m.mainScreen <> invalid then m.mainScreen.adultUnlocked = true
+        return
+    end if
+
+    if m.stack.Count() > 0 then m.stack[m.stack.Count() - 1].setFocus(true)
 end sub
 
 ' ---- CU-18: conectividad ------------------------------------------------------
@@ -316,6 +343,12 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     if key = "back"
         ' El modal es lo primero de la prioridad.
+        if m.pinModal.visible
+            m.pinModal.visible = false
+            if m.stack.Count() > 0 then m.stack[m.stack.Count() - 1].setFocus(true)
+            return true
+        end if
+
         if m.appModal.visible
             hideModal()
             return true

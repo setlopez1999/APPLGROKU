@@ -20,6 +20,7 @@
     <!-- Motivo por el que un canal no se pudo reproducir; lo consume MainScene para el modal -->
     <field id="blockedReason" type="string" alwaysNotify="true" />
     <field id="catchupTarget" type="assocarray" alwaysNotify="true" />
+    <field id="adultUnlocked" type="boolean" value="false" onChange="onAdultUnlocked" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/MainScreen.brs" />

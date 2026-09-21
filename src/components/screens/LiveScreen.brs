@@ -37,7 +37,7 @@ sub init()
     m.epgWindow = { cells: {}, pastColumns: 0, futureColumns: 0 }
     m.catchupVerified = []
     m.favoriteIds = []
-    m.adultUnlocked = false
+    m.pendingAdultChannel = invalid
     m.deviceIp = ""
     m.pendingChannel = invalid
     m.utcOffset = tvDeviceUtcOffsetSec()
@@ -227,6 +227,18 @@ end sub
 sub onCatchupProbed()
     m.catchupVerified = m.probeTask.verifiedIds
     ' Se reconstruye la ventana: ahora ya se sabe en que celdas se puede dibujar el play.
+    refreshGrid()
+end sub
+
+' Vuelta del PIN correcto: se reproduce el canal que se habia intentado abrir.
+sub onAdultUnlocked()
+    if not m.top.adultUnlocked then return
+    canal = m.pendingAdultChannel
+    m.pendingAdultChannel = invalid
+    if canal = invalid then return
+
+    m.currentChannel = canal
+    playCurrent()
     refreshGrid()
 end sub
 
@@ -428,9 +440,11 @@ sub onChannelChosen()
 
     ' Orden verificado contra el original (player.js:160-169): premium ANTES que adulto, y la
     ' restriccion por IP la ultima porque es la unica que gasta una llamada de red.
-    paso = tvResolveLaunchStep(channel, m.sections, premiumsActuales(), m.adultUnlocked)
+    paso = tvResolveLaunchStep(channel, m.sections, premiumsActuales(), m.global.adultUnlocked)
 
     if paso <> "play" and paso <> "ip"
+        ' Se guarda el canal: si el usuario acierta el PIN, se reproduce sin tener que elegirlo otra vez.
+        if paso = "adult" then m.pendingAdultChannel = channel
         m.top.blockedReason = paso
         return
     end if

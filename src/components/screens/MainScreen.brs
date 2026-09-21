@@ -64,6 +64,10 @@ sub onProfileAction()
     closeProfileMenu()
 end sub
 
+sub onAdultUnlocked()
+    m.live.adultUnlocked = m.top.adultUnlocked
+end sub
+
 sub onRequestCatchup()
     m.top.catchupTarget = m.live.requestCatchup
 end sub

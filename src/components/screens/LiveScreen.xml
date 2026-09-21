@@ -30,6 +30,7 @@
     <field id="blockedReason" type="string" alwaysNotify="true" />
     <!-- Grabacion a reproducir a pantalla completa: { url, titulo, cnId } -->
     <field id="requestCatchup" type="assocarray" alwaysNotify="true" />
+    <field id="adultUnlocked" type="boolean" value="false" onChange="onAdultUnlocked" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/LiveScreen.brs" />
@@ -40,6 +41,7 @@
   <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelAccess.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Favorites.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/ParentalPin.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelInfo.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Epg.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/EpgGrid.brs" />

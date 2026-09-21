@@ -112,18 +112,34 @@ distinto en el Roku Developer Dashboard**. Runbook en `MULTI_ISP.md`.
 
 ## 8. Decisiones ABIERTAS (hay que resolverlas antes de tocar el CU correspondiente)
 
-### 8.1 — CU-14: el PIN parental y bcrypt · **BLOQUEANTE**
+### 8.1 — CU-14: el PIN parental y bcrypt · **RESUELTA 2026-09-21**
 
-El backend manda `parentlockcode` como **hash bcrypt** y el original compara con `bcrypt.compare()`.
-Roku no tiene bcrypt: `roEVPDigest` solo da md5 / sha1 / sha256.
+El backend manda `parentlockcode` como hash **bcrypt con coste 10** (`$2y$10$...`, visto en la
+cuenta real). Verificarlo exige ~2^10 expansiones de clave de Blowfish — alrededor de un millón de
+cifrados de bloque — y Roku solo expone md5/sha1/sha256 y AES. Se puede escribir Blowfish a mano en
+BrightScript, pero tardaría **minutos por intento**: inservible con un mando en la mano.
 
-| Opción | Qué implica | Valoración |
-|---|---|---|
-| A. Endpoint de validación en el backend | El canal manda el PIN, el backend responde sí/no | **Recomendada.** Es la única que no degrada la seguridad ni el rendimiento. Requiere trabajo de backend |
-| B. Que el backend devuelva también un sha256/HMAC del PIN | Se valida en el dispositivo | Cambia el contrato; más débil que bcrypt, pero equivalente al uso real (un PIN de 4 dígitos ya es débil) |
-| C. Implementar bcrypt en BrightScript | Blowfish + key schedule con coste 2^10 | **Descartada salvo medición.** BrightScript es lento; probablemente segundos por intento |
+**Decisión: PIN local del aparato** (`domain/usecase/ParentalPin.brs` + `data/local/Session.brs`).
+La primera vez que alguien abre un canal de adultos, la app le pide crear un PIN de 4 dígitos y
+guarda su sha256 con el `deviceId` como sal. No sale nada al backend.
 
-**Hasta que se decida, CU-14 queda fuera de alcance** y los canales adultos no se reproducen.
+Por qué es aceptable: un control parental en una TV protege de **un niño en casa**, no de un
+atacante remoto. Y con un PIN de 4 dígitos — 10.000 combinaciones — el ataque real es probarlas
+todas, no romper el hash; bcrypt solo lo hace más lento, no imposible. Además, hoy el hash ya viaja
+al cliente en cada `get-web2`.
+
+Detalles que importan:
+- El PIN **sobrevive al cierre de sesión**, igual que el `deviceId`. Si se borrara, cualquiera lo
+  saltaría haciendo logout y volviendo a entrar.
+- Una vez validado, los adultos quedan **desbloqueados durante la sesión**: pedirlo en cada canal es
+  insufrible con un mando.
+- **Peaje honesto**: este PIN NO coincide con el que el usuario tenga configurado en el móvil o en
+  la web. Se le avisa en pantalla al crearlo.
+
+**Mejora pendiente (no bloqueante)**: si el backend expone algún día un
+`POST api/validate-parental {token, code} → {valid}`, se cambia SOLO `ParentalPin.brs` y el PIN
+vuelve a ser el mismo en todas las plataformas. Ese endpoint resolvería lo mismo para cualquier
+plataforma futura sin bcrypt.
 
 ### 8.2 — CU-11: zapping sin CH+/CH-
 

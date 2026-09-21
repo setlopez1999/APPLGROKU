@@ -165,6 +165,7 @@ log. En el port de Android se perdió un diagnóstico leyendo los logs de otra a
 |---|---|
 | `rem` no se puede usar como nombre de variable | `rem` **inicia un comentario** en BrightScript. `rem = a mod b` se traga el resto de la línea y el error que da es "token inesperado" en la línea siguiente, que despista |
 | `next` tampoco | Es palabra reservada (`for...next`) |
+| `step` tampoco | Es palabra reservada (`for ... to ... step`). Se suma a `rem` y `next` |
 | `roArray` **no tiene `Insert()`** | Solo `Push`, `Pop`, `Shift`, `Unshift`, `Delete`, `Append`, `Clear`, `Count`. Para insertar en medio hay que desplazar por índice. Y falla en *ejecución*, no al compilar: "Function Call Operator ( ) attempted on non-function" |
 | `Str(n)` mete un espacio delante | Siempre `Str(n).Trim()`. Si no, se cuela en urls y textos |
 | El `mod` de un negativo da negativo | Al calcular la hora local con desfase negativo hay que sumar 86400 |

@@ -23,6 +23,7 @@
   <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/FlattenCatalog.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/SessionRules.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/ParentalPin.brs" />
   <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
   <script type="text/brightscript" uri="pkg:/source/data/remote/ApiRoutes.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelAccess.brs" />
@@ -41,6 +42,7 @@
     <Group id="screenStack" />
     <Group id="modalLayer">
       <AppModal id="appModal" visible="false" />
+      <PinModal id="pinModal" visible="false" />
     </Group>
 
     <!-- Procesos de sesión (docs/arquitectura_flujo.md §2). En Roku NO hay cancelación automática:
