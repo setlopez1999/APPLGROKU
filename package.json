@@ -9,6 +9,8 @@
     "deploy": "roku-deploy",
     "lint": "bsc --project bsconfig.json --create-package false --copy-to-staging false",
     "audit": "node scripts/audit-streams.js",
+    "images:oneplay": "node scripts/make-placeholder-images.js oneplay",
+    "package": "bsc --project bsconfig.json",
     "test": "node scripts/test.js"
   },
   "devDependencies": {
