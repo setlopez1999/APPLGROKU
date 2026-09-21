@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Modal reutilizable para los cuatro casos del original (docs/DISENO.md §2.7):
+  premium, restricción por IP, sin conexión y —cuando se resuelva lo de bcrypt— PIN parental.
+
+  Son el mismo objeto con distinto texto, así que comparten componente: un solo sitio donde ajustar
+  el estilo, y el foco se comporta igual en todos.
+
+  ⚠ NO VERIFICADO EN UN ROKU FÍSICO.
+-->
+<component name="AppModal" extends="Group">
+
+  <interface>
+    <field id="titulo" type="string" onChange="onContentChanged" />
+    <field id="mensaje" type="string" onChange="onContentChanged" />
+    <!-- Texto del botón. Vacío = modal solo informativo, se cierra con ATRÁS -->
+    <field id="botonTexto" type="string" value="" onChange="onContentChanged" />
+    <!-- "accept" al pulsar el botón, "close" al salir con ATRÁS -->
+    <field id="action" type="string" alwaysNotify="true" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/modals/AppModal.brs" />
+
+  <children>
+    <Rectangle id="scrim" width="1920" height="1080" />
+
+    <Rectangle id="panel" translation="[510,340]" width="900" height="400" />
+    <Label id="titulo" translation="[570,400]" width="780" font="font:LargeBoldSystemFont" />
+    <Label id="mensaje" translation="[570,480]" width="780" height="130" wrap="true"
+           font="font:MediumSystemFont" />
+
+    <Group id="boton" translation="[570,630]">
+      <Rectangle id="botonFondo" width="360" height="72" />
+      <Label id="botonTexto" width="360" height="72" horizAlign="center" vertAlign="center"
+             font="font:MediumBoldSystemFont" />
+    </Group>
+  </children>
+
+</component>

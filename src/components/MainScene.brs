@@ -30,6 +30,14 @@ sub init()
     m.revalidateTimer.observeField("fire", "onRevalidate")
     m.catalogSignature = ""
 
+    m.networkTimer = m.top.findNode("networkTimer")
+    m.networkTimer.observeField("fire", "onNetworkCheck")
+    m.networkTimer.control = "start"
+
+    m.appModal = m.top.findNode("appModal")
+    m.appModal.observeField("action", "onModalAction")
+    m.modalKind = ""
+
     showLogin()
 end sub
 
@@ -96,6 +104,7 @@ sub onLoginSuccess()
     main.videoNode = m.videoPlayer
     main.observeField("logout", "onLogout")
     main.observeField("fullscreenCnId", "onRequestFullscreen")
+    main.observeField("blockedReason", "onBlockedChannel")
     m.mainScreen = main
     replaceStack(main)
 
@@ -146,6 +155,76 @@ sub syncAfterFullscreen()
     cnId = m.fullscreenPlayer.currentCnId
     m.fullscreenPlayer = invalid
     if cnId > 0 then m.mainScreen.resumeCnId = cnId
+end sub
+
+' ---- modales -----------------------------------------------------------------
+'
+' Los cuatro casos del original comparten componente (docs/DISENO.md 2.7). La escena es la duena:
+' asi el ATRAS tiene una sola prioridad y ningun panel de debajo se queda el foco.
+
+sub showModal(kind as string, titulo as string, mensaje as string, botonTexto = "" as string)
+    m.modalKind = kind
+    m.appModal.titulo = titulo
+    m.appModal.mensaje = mensaje
+    m.appModal.botonTexto = botonTexto
+    m.appModal.visible = true
+    m.appModal.setFocus(true)
+end sub
+
+sub hideModal()
+    m.modalKind = ""
+    m.appModal.visible = false
+    if m.stack.Count() > 0 then m.stack[m.stack.Count() - 1].setFocus(true)
+end sub
+
+sub onModalAction()
+    if m.modalKind = "offline" and m.appModal.action = "accept"
+        ' Reintentar: si ya hay red, el sondeo de 5 s lo detecta y cierra el modal solo.
+        onNetworkCheck()
+        return
+    end if
+
+    hideModal()
+end sub
+
+' Lo piden las pantallas cuando un canal no se puede reproducir.
+sub onBlockedChannel()
+    razon = m.mainScreen.blockedReason
+    if razon = "" then return
+
+    if razon = "premium"
+        showModal("premium", "Contenido no incluido", "Este canal pertenece a un pack que no esta en tu plan. Para contratarlo, contacta con tu proveedor.")
+        return
+    end if
+
+    if razon = "ip"
+        showModal("ip", "Canal restringido", "Este canal no esta disponible desde tu conexion actual.")
+        return
+    end if
+
+    if razon = "unplayable"
+        showModal("unplayable", "Canal no disponible", "Este canal no esta disponible en tu plan.")
+    end if
+end sub
+
+' ---- CU-18: conectividad ------------------------------------------------------
+'
+' SceneGraph no avisa por push de los cambios de red, asi que se sondea. El modal tiene guard
+' propio: si ya esta abierto no se vuelve a abrir, para no robar el foco en cada comprobacion.
+
+sub onNetworkCheck()
+    info = CreateObject("roDeviceInfo")
+    hayRed = info.GetLinkStatus()
+
+    m.global.isOnline = hayRed
+
+    if tvShouldShowOfflineModal(hayRed, m.modalKind = "offline")
+        showModal("offline", "Sin conexion", "Para acceder al contenido debes estar conectado a internet.", "Reconectar")
+        return
+    end if
+
+    ' Al volver la red, el modal se cierra solo.
+    if hayRed and m.modalKind = "offline" then hideModal()
 end sub
 
 ' ---- CU-16: heartbeat al dashboard (cada 15 s) -------------------------------
@@ -222,6 +301,12 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
     if key = "back"
+        ' El modal es lo primero de la prioridad.
+        if m.appModal.visible
+            hideModal()
+            return true
+        end if
+
         ' Prioridad (docs/plan_migracion.md §6): modal → pantalla completa → EPG → pantalla apilada
         ' → pestaña inicial → cerrar el canal. Los primeros niveles los resuelve cada pantalla y solo
         ' llega aquí lo que nadie ha consumido.

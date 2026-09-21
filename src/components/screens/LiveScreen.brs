@@ -36,6 +36,9 @@ sub init()
     m.epgWindow = { cells: {}, pastColumns: 0, futureColumns: 0 }
     m.catchupVerified = []
     m.favoriteIds = []
+    m.adultUnlocked = false
+    m.deviceIp = ""
+    m.pendingChannel = invalid
     m.utcOffset = tvDeviceUtcOffsetSec()
 
     loadCatalog()
@@ -199,6 +202,37 @@ function premiumsActuales() as object
     return userInfo.premiumsAllowed
 end function
 
+' ---- CU-13: restriccion por IP -----------------------------------------------
+'
+' Solo para los canales con `restriccion = 1`. Es la ultima validacion porque es la unica que gasta
+' una llamada. El body real es {ip, cn_id}, verificado en el original.
+
+sub validateIpAndPlay(channel as object)
+    m.pendingChannel = channel
+
+    m.ipTask = CreateObject("roSGNode", "ApiTask")
+    m.ipTask.observeField("response", "onIpResponse")
+    peticion = tvApiRequest(tvApiChannelAllowedIpUrl(m.brand.baseUrl), "POST", tvApiChannelAllowedIpBody(m.deviceIp, channel.cnId))
+    m.ipTask.request = peticion
+    m.ipTask.control = "RUN"
+end sub
+
+sub onIpResponse()
+    canal = m.pendingChannel
+    m.pendingChannel = invalid
+    if canal = invalid then return
+
+    ' 403 = esta IP no puede ver el canal.
+    if m.ipTask.response.statusCode = 403
+        m.top.blockedReason = "ip"
+        return
+    end if
+
+    m.currentChannel = canal
+    playCurrent()
+    refreshGrid()
+end sub
+
 ' ---- favoritos (CU-08 / CU-09) -----------------------------------------------
 
 sub fetchFavorites()
@@ -260,9 +294,12 @@ sub refreshGrid()
     now& = tvNowSeconds()
     m.epgWindow = tvBuildEpgWindow(m.guide, m.filtered, now&, m.brand.isCatchupClient, m.catchupVerified, m.utcOffset)
 
+    ' El ORDEN importa: asignar `channels` dispara la reconstruccion de la parrilla, que enfoca la
+    ' fila del canal en emision. Si `currentCnId` se pone despues, la parrilla se enfoca con el
+    ' valor VIEJO y el marco se queda en el canal anterior. Visto en el simulador el 2026-09-21.
+    if m.currentChannel <> invalid then m.grid.currentCnId = m.currentChannel.cnId
     m.grid.epgWindow = m.epgWindow
     m.grid.channels = m.filtered
-    if m.currentChannel <> invalid then m.grid.currentCnId = m.currentChannel.cnId
 end sub
 
 sub refreshInfo()
@@ -353,6 +390,20 @@ end sub
 sub onChannelChosen()
     channel = tvFindChannelByCnId(m.channels, m.grid.chosenCnId)
     if channel = invalid then return
+
+    ' Orden verificado contra el original (player.js:160-169): premium ANTES que adulto, y la
+    ' restriccion por IP la ultima porque es la unica que gasta una llamada de red.
+    paso = tvResolveLaunchStep(channel, m.sections, premiumsActuales(), m.adultUnlocked)
+
+    if paso <> "play" and paso <> "ip"
+        m.top.blockedReason = paso
+        return
+    end if
+
+    if paso = "ip"
+        validateIpAndPlay(channel)
+        return
+    end if
 
     ' TODO(CU-14/15): aquí va el paso por tvResolveLaunchStep (premium → adulto → IP). El PIN
     ' parental está bloqueado hasta resolver lo de bcrypt (plan_migracion.md §8.1).

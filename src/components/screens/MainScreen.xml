@@ -17,6 +17,8 @@
     <field id="resumeCnId" type="integer" value="0" onChange="onResume" />
     <!-- Sube cada vez que la revalidacion detecta un cambio REAL en el catalogo -->
     <field id="catalogVersion" type="integer" value="0" onChange="onCatalogVersion" />
+    <!-- Motivo por el que un canal no se pudo reproducir; lo consume MainScene para el modal -->
+    <field id="blockedReason" type="string" alwaysNotify="true" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/MainScreen.brs" />

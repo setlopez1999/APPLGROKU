@@ -39,13 +39,17 @@
     <Video id="videoPlayer" width="1920" height="1080" visible="false" />
 
     <Group id="screenStack" />
-    <Group id="modalLayer" />
+    <Group id="modalLayer">
+      <AppModal id="appModal" visible="false" />
+    </Group>
 
     <!-- Procesos de sesión (docs/arquitectura_flujo.md §2). En Roku NO hay cancelación automática:
          se arrancan al entrar y se paran a mano en el logout, o seguirían pidiendo con un token
          muerto — el equivalente de los intervals apilados del original. -->
     <Timer id="heartbeatTimer" duration="15" repeat="true" />
     <Timer id="revalidateTimer" duration="60" repeat="true" />
+    <!-- CU-18: en SceneGraph no hay aviso push de red, se sondea (docs/ROKU-GOTCHAS.md) -->
+    <Timer id="networkTimer" duration="5" repeat="true" />
   </children>
 
 </component>

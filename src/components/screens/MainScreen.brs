@@ -10,6 +10,7 @@ sub init()
     m.navBar = m.top.findNode("navBar")
     m.navBar.observeField("action", "onNavAction")
     m.live.observeField("requestFullscreen", "onRequestFullscreen")
+    m.live.observeField("blockedReason", "onBlockedReason")
     m.profileMenu = m.top.findNode("profileMenu")
     m.profileMenu.observeField("action", "onProfileAction")
 
@@ -60,6 +61,10 @@ sub onProfileAction()
         return
     end if
     closeProfileMenu()
+end sub
+
+sub onBlockedReason()
+    m.top.blockedReason = m.live.blockedReason
 end sub
 
 sub onCatalogVersion()
