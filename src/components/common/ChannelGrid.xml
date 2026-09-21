@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Parrilla de canales: una fila por canal, con sus celdas de programa.
+
+  Usa MarkupList (renderizado perezoso): solo se construyen las filas visibles. En los Roku de gama
+  baja que ponen los ISP, construir y destruir nodos durante el scroll es lo que más se paga
+  (docs/ROKU-GOTCHAS.md §10).
+
+  PENDIENTE: seleccionar una CELDA concreta para reproducir su grabación. Hoy el foco es por FILA
+  (arriba/abajo) y OK sintoniza el canal. La selección horizontal dentro de la fila necesita
+  coordinar el foco con el MarkupList, y prefiero montarlo con un Roku delante que a ciegas.
+
+  ⚠ NO VERIFICADO EN DISPOSITIVO.
+-->
+<component name="ChannelGrid" extends="Group">
+
+  <interface>
+    <field id="channels" type="array" onChange="onDataChanged" />
+    <!-- Ventana de tvBuildEpgWindow() -->
+    <field id="epgWindow" type="assocarray" onChange="onDataChanged" />
+    <field id="currentCnId" type="integer" value="0" />
+    <!-- cn_id del canal elegido -->
+    <field id="chosenCnId" type="integer" alwaysNotify="true" />
+    <field id="gridFocused" type="boolean" value="false" onChange="onGridFocusChanged" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/common/ChannelGrid.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Time.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Epg.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Catchup.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/EpgGrid.brs" />
+
+  <children>
+    <MarkupList id="list"
+                itemComponentName="ChannelRowItem"
+                itemSize="[1792,112]"
+                itemSpacing="[0,10]"
+                numRows="4"
+                vertFocusAnimationStyle="fixedFocusWrap"
+                drawFocusFeedback="false" />
+  </children>
+
+</component>

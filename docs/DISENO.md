@@ -134,9 +134,14 @@ horario, categoría y barra de progreso. Botones **Mi lista** y **pantalla compl
 
 **CategoryTabs**: píldoras horizontales; la activa es blanca con texto oscuro.
 
-**ChannelGrid**: filas de canales × columnas de tiempo. Las celdas **pasadas** con grabación
-disponible llevan marca de reproducible (▶). Ver `plan_migracion.md` §8.3 sobre cómo dibujar los
-anchos.
+**ChannelGrid**: una fila por canal; cada fila, un número **fijo** de celdas de programa —hasta 3
+pasadas (catch-up), la de AHORA, y 1 futura. **No** son celdas de ancho proporcional a la duración.
+La ventana es maleable: si no hay datos pasados no se dibuja ninguna columna pasada, y todas las
+filas tienen el mismo ancho (las que faltan van vacías) para que la rejilla quede alineada.
+
+La celda de AHORA lleva barra de progreso. Las **pasadas con grabación comprobada** llevan marca de
+reproducible (▶) — comprobada de verdad, con sonda: el flag `catchup` del backend miente
+(`BACKEND-GOTCHAS.md` §3). Lógica en `domain/usecase/EpgGrid.brs`, con tests.
 
 ### 2.5 Pantalla completa (`FullscreenPlayer`)
 

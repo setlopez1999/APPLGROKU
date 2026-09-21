@@ -26,6 +26,7 @@ sub main()
     testSessionRules()
     testPlayback()
     testTabs()
+    testEpgGrid()
 
     code = tvTestExitCode()
     if code <> 0 then throw "Hay tests en rojo"

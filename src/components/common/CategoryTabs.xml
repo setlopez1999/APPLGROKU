@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Píldoras de categoría (docs/DISENO.md §2.4). La activa va en blanco con texto oscuro; el resto,
+  translúcidas sobre el vídeo ("glass").
+
+  No se queda el foco: cuando se sale por arriba o por abajo, lo devuelve a LiveScreen.
+
+  ⚠ NO VERIFICADO EN DISPOSITIVO.
+-->
+<component name="CategoryTabs" extends="Group">
+
+  <interface>
+    <!-- Nombres de categoría, en el orden del catálogo -->
+    <field id="categories" type="array" onChange="onCategoriesChanged" />
+    <field id="selectedIndex" type="integer" value="0" onChange="onSelectionChanged" />
+    <field id="barFocused" type="boolean" value="false" onChange="onSelectionChanged" />
+    <!-- Se dispara al elegir una categoría -->
+    <field id="chosenIndex" type="integer" alwaysNotify="true" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/common/CategoryTabs.brs" />
+
+  <children>
+    <LayoutGroup id="pills" layoutDirection="horiz" itemSpacings="[16]" />
+  </children>
+
+</component>

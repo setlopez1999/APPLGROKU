@@ -27,6 +27,12 @@
 
   <children>
     <Rectangle id="background" width="1920" height="1080" />
+
+    <!-- ÚNICO nodo Video de toda la app, y va el primero para que quede DETRÁS de las pantallas.
+         Uno solo porque el decodificador es un recurso único: dos reproductores a la vez y el
+         segundo muere sin conseguirlo (docs/BACKEND-GOTCHAS.md §9). -->
+    <Video id="videoPlayer" width="1920" height="1080" visible="false" />
+
     <Group id="screenStack" />
     <Group id="modalLayer" />
   </children>

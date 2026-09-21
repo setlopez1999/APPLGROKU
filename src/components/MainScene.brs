@@ -18,6 +18,10 @@ sub init()
 
     m.screenStack = m.top.findNode("screenStack")
     m.modalLayer = m.top.findNode("modalLayer")
+
+    ' Se crea una vez y se PRESTA a las pantallas que lo necesiten. Nadie crea otro.
+    m.videoPlayer = m.top.findNode("videoPlayer")
+
     m.stack = []
 
     showLogin()
@@ -71,11 +75,16 @@ sub onLoginSuccess()
     m.global.sections = catalog.sections
 
     main = CreateObject("roSGNode", "MainScreen")
+    main.videoNode = m.videoPlayer
     main.observeField("logout", "onLogout")
     replaceStack(main)
 end sub
 
 sub onLogout()
+    ' Detener, no pausar: pausar deja el decodificador reservado (BACKEND-GOTCHAS §9).
+    m.videoPlayer.control = "stop"
+    m.videoPlayer.visible = false
+
     tvSessionClear()
     m.global.session = invalid
     m.global.isLoggedIn = false

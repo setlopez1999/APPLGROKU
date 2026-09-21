@@ -3,31 +3,24 @@
   Contenedor browse-first post-login (docs/DISENO.md §2.3): barra superior + contenido de la pestaña
   activa. La app arranca en "TV en directo".
 
-  Estado actual: la barra y el esqueleto están; LiveScreen (el preview inmersivo + categorías +
-  parrilla) es lo siguiente. El contenido de ahora es un resumen de la sesión, para poder verificar
-  en el aparato que el login llega hasta aquí con datos reales.
-
   ⚠ NO VERIFICADO EN DISPOSITIVO.
 -->
 <component name="MainScreen" extends="Group">
 
   <interface>
     <field id="logout" type="boolean" alwaysNotify="true" />
+    <!-- El nodo Video se presta desde MainScene y se pasa a LiveScreen -->
+    <field id="videoNode" type="node" onChange="onVideoNodeChanged" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/MainScreen.brs" />
-  <!-- pkg:/source/ no entra solo en los componentes: hay que declararlo (ROKU-GOTCHAS §16). -->
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Tabs.brs" />
 
   <children>
-    <Rectangle id="bg" width="1920" height="1080" />
+    <!-- Sin fondo propio: en "TV en directo" el fondo ES el vídeo, que dibuja MainScene por detrás.
+         Una pantalla con fondo sólido aquí taparía el modo inmersivo. -->
+    <LiveScreen id="live" />
     <TopNavBar id="navBar" />
-
-    <Group id="content" translation="[64,180]">
-      <Label id="greeting" font="font:LargeBoldSystemFont" />
-      <Label id="summary" translation="[0,80]" font="font:MediumSystemFont" />
-      <Label id="hint" translation="[0,160]" font="font:SmallSystemFont" />
-    </Group>
   </children>
 
 </component>

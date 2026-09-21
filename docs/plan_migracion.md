@@ -132,12 +132,17 @@ flechas ↑↓ en pantalla completa (que es además lo que hace el rediseño Kot
 quiere algún equivalente extra (p. ej. `Replay` o `*`/Options) o se deja solo con flechas.
 **Propuesta: solo flechas**, igual que el rediseño.
 
-### 8.3 — CU-10: cómo se dibuja la grilla del EPG
+### 8.3 — CU-10: cómo se dibuja la grilla del EPG · **CERRADA 2026-09-21**
 
-`RowList`/`MarkupGrid` no soportan celdas de ancho proporcional a la duración del programa. Opciones:
-componer la fila a mano con `Group` + `Rectangle` posicionados (control total, más trabajo y más
-riesgo de rendimiento), o simplificar a celdas de ancho fijo por programa (más barato, se aleja del
-diseño). **Decidir mirando el diseño del Kotlin y midiendo en un Roku de gama baja**, no antes.
+Se temía tener que dibujar celdas de ancho proporcional a la duración, que `RowList`/`MarkupGrid` no
+soportan. **Al leer el rediseño Kotlin resultó que no hace eso**: `LiveViewModel.buildEpg()` usa un
+número **fijo** de columnas por fila (`EPG_PAST_COUNT = 3`, `EPG_FUTURE_COUNT = 1`), y la ventana es
+*maleable* — el número real se ajusta a los datos, con esos topes. Si el ISP no manda nada pasado,
+no se dibuja ninguna columna pasada, así no quedan cuadros vacíos.
+
+Eso se porta a SceneGraph sin pelearse con el layout. Implementado y testeado en
+`domain/usecase/EpgGrid.brs`. Queda por medir el rendimiento en un Roku de gama baja, pero ya no hay
+un problema de diseño que resolver.
 
 ### 8.4 — Registry de 32 KB
 

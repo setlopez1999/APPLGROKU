@@ -5,16 +5,7 @@
 sub init()
     m.brand = m.global.brand
 
-    m.top.findNode("bg").color = m.brand.background
-
-    m.greeting = m.top.findNode("greeting")
-    m.summary = m.top.findNode("summary")
-    m.hint = m.top.findNode("hint")
-
-    m.greeting.color = m.brand.textPrimary
-    m.summary.color = m.brand.textSecondary
-    m.hint.color = m.brand.textDisabled
-
+    m.live = m.top.findNode("live")
     m.navBar = m.top.findNode("navBar")
     m.navBar.observeField("action", "onNavAction")
 
@@ -22,30 +13,26 @@ sub init()
     userInfo = m.global.session
     m.navBar.tabs = tvResolveTabs(m.brand, "absent", tvContentAvailabilityFromUserInfo(userInfo))
     m.navBar.selectedTab = tvStartTab()
-    m.navBar.barFocused = true
-    m.navBar.setFocus(true)
 
-    renderSummary(userInfo)
+    ' Dos zonas: la barra de arriba y el contenido. El foco arranca en el contenido, que es donde
+    ' está lo que el usuario quiere hacer; la barra se alcanza subiendo.
+    m.ZONE_NAV = 0
+    m.ZONE_CONTENT = 1
+    m.zone = m.ZONE_CONTENT
+    applyZone()
 end sub
 
-' Resumen de la sesión: sirve para confirmar en el aparato que el login llega con datos de verdad.
-' Lo reemplaza LiveScreen.
-sub renderSummary(userInfo as object)
-    if userInfo = invalid
-        m.greeting.text = "Sesión no disponible"
-        return
+sub onVideoNodeChanged()
+    m.live.videoNode = m.top.videoNode
+end sub
+
+sub applyZone()
+    m.navBar.barFocused = (m.zone = m.ZONE_NAV)
+    if m.zone = m.ZONE_NAV
+        m.navBar.setFocus(true)
+    else
+        m.live.setFocus(true)
     end if
-
-    channels = m.global.channels
-    sections = m.global.sections
-    total = 0
-    if channels <> invalid then total = channels.Count()
-    categorias = 0
-    if sections <> invalid then categorias = sections.Count()
-
-    m.greeting.text = "Hola, " + userInfo.user
-    m.summary.text = Str(total).Trim() + " canales reproducibles en " + Str(categorias).Trim() + " categorías  ·  plan " + userInfo.plan
-    m.hint.text = "Siguiente: TV en directo (preview + categorías + parrilla)"
 end sub
 
 sub onNavAction()
@@ -53,22 +40,35 @@ sub onNavAction()
 
     if action = "profile"
         ' El menú de perfil (Perfil / Mi Plan / Cambiar contraseña / Cerrar sesión) llega con su
-        ' pantalla. Por ahora sirve de salida para poder probar el ciclo completo en el aparato.
+        ' pantalla. Por ahora es la salida, para poder probar el ciclo completo en el aparato.
         m.top.logout = true
         return
     end if
 
     if action = "home" or action = "live" or action = "events" or action = "content"
         m.navBar.selectedTab = action
+        ' Solo "TV en directo" tiene pantalla; el resto quedan como pestañas sin contenido hasta que
+        ' se construyan.
+        m.zone = m.ZONE_CONTENT
+        applyZone()
     end if
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
-    ' Con una sola pantalla el foco vive en la barra. Cuando exista LiveScreen, abajo se baja al
-    ' contenido y arriba se vuelve a la barra.
-    if key = "down" or key = "up" then return true
+    ' LiveScreen deja pasar el "arriba" cuando ya está en su zona más alta: ahí se sube a la barra.
+    if key = "up" and m.zone = m.ZONE_CONTENT
+        m.zone = m.ZONE_NAV
+        applyZone()
+        return true
+    end if
+
+    if key = "down" and m.zone = m.ZONE_NAV
+        m.zone = m.ZONE_CONTENT
+        applyZone()
+        return true
+    end if
 
     return false
 end function

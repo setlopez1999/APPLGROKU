@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  "TV en directo" — la pantalla principal (docs/DISENO.md §2.4), en modo INMERSIVO:
+  el vídeo del canal ocupa el fondo a pantalla completa y encima van, translúcidos, la información
+  del canal (60 % del alto) y la parrilla (el resto).
+
+  Tres degradados enganchan las capas:
+    - header:  420 px, oscurece hasta 0.88 bajo la barra superior
+    - EPG:     empieza 110 px antes de que termine el preview y llega a NEGRO PLENO 160 px después,
+               justo donde empiezan las filas (que son sólidas) → la unión no se nota
+
+  DESVIACIÓN ACEPTADA: SceneGraph no tiene degradados. Se imitan apilando rectángulos con alfa
+  escalonada. Si en el aparato se ven bandas, se sustituye por un PNG de degradado.
+
+  ⚠ NO VERIFICADO EN DISPOSITIVO. Ni el render ni el recorrido del foco.
+-->
+<component name="LiveScreen" extends="Group">
+
+  <interface>
+    <!-- El nodo Video es ÚNICO en la app y lo presta MainScene (arquitectura_flujo.md §1) -->
+    <field id="videoNode" type="node" onChange="onVideoNodeReady" />
+    <field id="requestFullscreen" type="boolean" alwaysNotify="true" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/screens/LiveScreen.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Time.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelAccess.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelInfo.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Epg.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/EpgGrid.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Catchup.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/FlattenCatalog.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Playback.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Zapping.brs" />
+  <script type="text/brightscript" uri="pkg:/source/data/remote/ApiRoutes.brs" />
+
+  <children>
+    <!-- Velos sobre el vídeo (el vídeo lo dibuja MainScene, por detrás de esta pantalla) -->
+    <Group id="headerFade" />
+    <Group id="epgFade" />
+
+    <!-- Zona sólida de la parrilla, desde donde termina el degradado -->
+    <Rectangle id="gridBackground" translation="[0,698]" width="1920" height="382" />
+
+    <CurrentChannelDisplay id="display" translation="[0,180]" />
+    <CategoryTabs id="tabs" translation="[64,610]" />
+    <ChannelGrid id="grid" translation="[64,720]" />
+
+    <Label id="status" translation="[64,400]" width="1200" font="font:MediumSystemFont" />
+  </children>
+
+</component>

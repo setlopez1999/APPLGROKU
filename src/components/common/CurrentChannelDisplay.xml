@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Información del canal en emisión, sobre el vídeo (docs/DISENO.md §2.4): número, logo, nombre,
+  programa, horario y barra de progreso, más los botones Mi lista y pantalla completa.
+
+  Los textos llegan ya formateados desde domain/usecase/ChannelInfo.brs — aquí no se calcula nada.
+
+  ⚠ NO VERIFICADO EN DISPOSITIVO.
+-->
+<component name="CurrentChannelDisplay" extends="Group">
+
+  <interface>
+    <!-- Modelo de tvBuildChannelInfo() -->
+    <field id="info" type="assocarray" onChange="onInfoChanged" />
+    <field id="isFavorite" type="boolean" value="false" onChange="onInfoChanged" />
+    <field id="barFocused" type="boolean" value="false" onChange="onFocusChanged" />
+    <!-- "mylist" o "fullscreen" -->
+    <field id="action" type="string" alwaysNotify="true" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/common/CurrentChannelDisplay.brs" />
+
+  <children>
+    <Poster id="logo" translation="[64,0]" width="120" height="80" />
+    <Label id="number" translation="[200,20]" font="font:MediumBoldSystemFont" />
+    <Label id="name" translation="[280,16]" font="font:LargeBoldSystemFont" />
+
+    <Label id="programTitle" translation="[64,120]" font="font:MediumBoldSystemFont" width="1100" />
+    <Label id="programTime" translation="[64,180]" font="font:SmallSystemFont" />
+
+    <Rectangle id="progressTrack" translation="[64,230]" width="700" height="8" />
+    <Rectangle id="progressFill" translation="[64,230]" width="0" height="8" />
+
+    <Label id="nextLabel" translation="[64,264]" font="font:SmallSystemFont" width="1100" />
+
+    <!-- Botones -->
+    <Group id="buttons" translation="[64,330]">
+      <Rectangle id="favBg" width="260" height="72" />
+      <Label id="favLabel" width="260" height="72" horizAlign="center" vertAlign="center"
+             font="font:SmallSystemFont" text="Mi lista" />
+
+      <Rectangle id="fullBg" translation="[288,0]" width="300" height="72" />
+      <Label id="fullLabel" translation="[288,0]" width="300" height="72" horizAlign="center"
+             vertAlign="center" font="font:SmallSystemFont" text="Pantalla completa" />
+    </Group>
+  </children>
+
+</component>
