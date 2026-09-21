@@ -29,6 +29,23 @@ npm run audit -- --url "https://host:1936/dir/canal.stream/playlist.m3u8"
 **No hay emulador de Roku.** Para ver el canal hace falta un aparato físico; qué se puede probar sin
 él y qué no está en `docs/PLAN.md` §9.0.
 
+## Cambiar de ISP
+
+Toda la identidad del cliente vive en `brands/<isp>/`. Es el equivalente de los product flavors del
+proyecto Kotlin: **no se toca una línea de código para cambiar de cliente**.
+
+```bash
+# ciclo completo en un Roku real: genera marca, empaqueta, instala, lanza y vuelca la consola
+HOST=192.168.0.203 PASS=<clave-dev> sh scripts/dev-cycle.sh oneplay
+HOST=192.168.0.203 PASS=<clave-dev> sh scripts/dev-cycle.sh playcom
+
+# o por partes
+npm run build:playcom && npm run package
+```
+
+ISPs registrados: `oneplay` (no exige el User-Agent APPMOVIL) y `playcom` (**sí lo exige**: devuelve
+403 sin él). Añadir uno nuevo: copiar la carpeta y rellenar `brand.json` — ver `docs/MULTI_ISP.md`.
+
 ## Generar el paquete para probar en un Roku
 
 ```bash

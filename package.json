@@ -6,6 +6,8 @@
   "scripts": {
     "build": "node scripts/build-isp.js",
     "build:oneplay": "node scripts/build-isp.js oneplay",
+    "build:playcom": "node scripts/build-isp.js playcom",
+    "images:playcom": "node scripts/make-placeholder-images.js playcom",
     "deploy": "roku-deploy",
     "lint": "bsc --project bsconfig.json --create-package false --copy-to-staging false",
     "audit": "node scripts/audit-streams.js",

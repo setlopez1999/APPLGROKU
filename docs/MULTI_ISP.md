@@ -61,6 +61,20 @@ La diferencia grande: en Gradle un solo proyecto produce N APKs con distinto `ap
 
 ---
 
+## 2.b Cambiar de ISP en un comando
+
+```bash
+HOST=<ip-roku> PASS=<clave-dev> sh scripts/dev-cycle.sh <isp>
+```
+
+Genera la marca, empaqueta, instala y deja la consola volcando. **Verificado el 2026-09-21** en un
+Roku Express: pasar de Oneplay a Playcom cambió nombre, color de acento y backend sin tocar código.
+
+Un detalle observado al alternar: el **registro del aparato se comparte** entre ISPs mientras se
+sideloadea en el mismo hueco de desarrollo, así que las credenciales recordadas de un ISP aparecen
+en el otro. En producción no pasa — cada ISP es un canal distinto con su propio registro — pero al
+probar conviene tenerlo en cuenta.
+
 ## 3. Paso a paso: añadir un ISP
 
 1. **Copiar** `brands/<isp-existente>/` y renombrarla al ISP nuevo.
