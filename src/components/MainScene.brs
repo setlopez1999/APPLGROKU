@@ -88,7 +88,7 @@ sub onLogout()
     m.videoPlayer.visible = false
 
     tvSessionClear()
-    m.global.session = invalid
+    m.global.session = {}
     m.global.isLoggedIn = false
     m.global.channels = []
     m.global.sections = []

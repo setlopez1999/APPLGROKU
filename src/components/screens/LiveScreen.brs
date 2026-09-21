@@ -44,12 +44,14 @@ end sub
 
 ' Los degradados se imitan apilando rectángulos con alfa escalonada: SceneGraph no tiene gradientes.
 sub buildFades()
-    ' Header: más oscuro arriba (0.88) y transparente al llegar a 420 px.
-    buildFade(m.top.findNode("headerFade"), 0, 420, 0.88, 0.0, 14)
+    ' DESVIACIÓN respecto al Kotlin, decidida al verlo en pantalla (2026-09-21): allí el velo del
+    ' header se apaga del todo a los 420 px. Aquí el texto del canal y los botones quedaban sobre
+    ' vídeo crudo y, con una imagen clara de fondo, no se leían. El velo ya no baja de 0.35: cubre
+    ' todo el bloque de info y enlaza sin salto con el de la parrilla.
+    buildFade(m.top.findNode("headerFade"), 0, 538, 0.88, 0.35, 18)
 
-    ' EPG: arranca 110 px antes de que acabe el preview (648) y llega a negro pleno 160 px después,
-    ' justo donde empiezan las filas sólidas.
-    buildFade(m.top.findNode("epgFade"), 538, 160, 0.0, 1.0, 14)
+    ' De ahí a negro pleno, justo donde empiezan las filas sólidas de la parrilla.
+    buildFade(m.top.findNode("epgFade"), 538, 160, 0.35, 1.0, 14)
 end sub
 
 sub buildFade(parent as object, y as integer, height as integer, alphaTop as float, alphaBottom as float, steps as integer)
@@ -93,7 +95,7 @@ sub loadCatalog()
 
     userInfo = m.global.session
     premiums = []
-    if userInfo <> invalid then premiums = userInfo.premiumsAllowed
+    if tvHasSession(userInfo) then premiums = userInfo.premiumsAllowed
 
     m.currentChannel = tvGetFirstAllowedChannel(m.channels, m.sections, premiums)
     if m.currentChannel <> invalid
@@ -107,7 +109,7 @@ end sub
 
 sub fetchGuide()
     userInfo = m.global.session
-    if userInfo = invalid then return
+    if not tvHasSession(userInfo) then return
 
     m.guideTask = CreateObject("roSGNode", "ApiTask")
     m.guideTask.observeField("response", "onGuideResponse")
@@ -117,6 +119,7 @@ end sub
 
 sub onGuideResponse()
     response = m.guideTask.response
+    print "[TV] guia: ok="; response.ok; " http="; response.statusCode; " error="; response.error
     if not response.ok then return
 
     m.guide = tvParseEpgGuide(response.json)
@@ -131,8 +134,10 @@ sub onGuideResponse()
     end if
 
     m.status.text = ""
+    print "[TV] guia cargada, ventana: "; m.epgWindow.pastColumns; " pasadas + "; m.epgWindow.futureColumns; " futuras"
     refreshGrid()
     refreshInfo()
+    print "[TV] ventana tras refresco: "; m.epgWindow.pastColumns; " pasadas + "; m.epgWindow.futureColumns; " futuras"
 end sub
 
 sub refreshGrid()

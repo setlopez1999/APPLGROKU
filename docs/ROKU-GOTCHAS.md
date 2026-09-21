@@ -248,3 +248,47 @@ Para no volver a dudar de estas piezas:
 **Salvedad**: el simulador (`brs-desktop`, extensión `brs-scenegraph`) implementa SceneGraph de forma
 PARCIAL. Lo que funciona aquí es buena señal, pero el render, el foco fino y sobre todo el **vídeo**
 hay que confirmarlos en un Roku de verdad.
+
+---
+
+## 19. `AddFields` con `invalid` crea un campo INSERVIBLE
+
+**Verificado en el simulador el 2026-09-21.** El bug más caro de la sesión.
+
+El valor inicial que se le pasa a `AddFields` **define el tipo del campo**. Si se pasa `invalid`, el
+campo queda sin tipo utilizable y **las asignaciones posteriores se descartan en silencio**: ni
+error, ni aviso, ni nada en el log.
+
+```brightscript
+globalNode.AddFields({ session: invalid })   ' ❌ mal
+m.global.session = userInfo                  ' se pierde; sigue siendo roInvalid
+
+globalNode.AddFields({ session: {} })        ' ✅ bien: el campo es assocarray
+```
+
+Síntoma que tuvimos: el login funcionaba, el catálogo se cargaba… y la guía nunca se pedía, porque
+el componente leía `m.global.session` y le llegaba `invalid`. Los campos declarados con tipo
+(`channels: []`) funcionaban perfectamente al lado, lo que despista aún más.
+
+**Regla**: todo campo del nodo global se declara con un valor inicial **del tipo correcto**. Para
+"todavía no hay valor" se usa el vacío del tipo (`{}`, `[]`, `""`), no `invalid`.
+
+---
+
+## 20. Un token de color que falta se pinta BLANCO
+
+**Verificado en el simulador el 2026-09-21.**
+
+`rectangle.color = <invalid>` no falla: Roku pinta el rectángulo **blanco**. Si encima hay texto
+claro, el control desaparece visualmente y parece un problema de diseño, no de datos.
+
+Nos pasó con `controlSurface`, que estaba en el diseño pero **no se generaba** en `BrandConfig`:
+los botones de "Mi lista"/pantalla completa y las píldoras de categoría inactivas salían como
+rectángulos blancos con el texto invisible.
+
+**Regla**: cualquier token que use un componente tiene que existir en el `BrandConfig` generado.
+Al añadir un token al diseño, añadirlo también a `scripts/build-isp.js`.
+
+**Aviso de JavaScript, no de Roku**: `build-isp.js` genera el BrandConfig con un template literal,
+así que **un backtick dentro de un comentario BrightScript rompe el generador**. No usar backticks
+en el texto que se genera.

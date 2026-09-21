@@ -13,6 +13,15 @@ sub runRequest()
         return
     end if
 
+    ' Solo hasta el "?": el query string de get-web2 lleva la contraseña EN CLARO y no puede
+    ' acabar en un log (docs/BACKEND-GOTCHAS.md §11).
+    corte = Instr(1, request.url, "?")
+    if corte > 0
+        print "[TV] ApiTask → "; Left(request.url, corte - 1)
+    else
+        print "[TV] ApiTask → "; request.url
+    end if
+
     port = CreateObject("roMessagePort")
     xfer = tvCreateUrlTransfer(request.url, port)
 
@@ -59,6 +68,7 @@ sub runRequest()
     end if
 
     code = msg.GetResponseCode()
+    print "[TV] ApiTask respuesta http="; code
     body = msg.GetString()
     kind = tvClassifyFailure(code)
 

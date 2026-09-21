@@ -39,4 +39,10 @@ sub testTabs()
     conVod = UserInfoFromJson({ user: "x", enabledvod: true })
     tvAssertEqual(tvContentAvailabilityFromUserInfo(conVod), "data", "con enabledvod, funcional")
     tvAssertEqual(tvContentAvailabilityFromUserInfo(invalid), "absent", "sin usuario no revienta")
+
+    ' La sesión vacía del nodo global es un AA SIN campos, no invalid (ROKU-GOTCHAS §19)
+    tvAssertEqual(tvContentAvailabilityFromUserInfo({}), "absent", "sesión vacía tampoco revienta")
+    tvAssertEqual(tvHasSession({}), false, "un AA vacío no es una sesión")
+    tvAssertEqual(tvHasSession(invalid), false, "invalid tampoco")
+    tvAssertEqual(tvHasSession(user), true, "un UserInfo parseado sí lo es")
 end sub

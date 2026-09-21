@@ -19,7 +19,10 @@ sub Main()
         brand: BrandConfig()
 
         ' --- Sesión (CU-01, 04, 17) ---
-        session: invalid          ' UserInfo en memoria; lo persistente va al registry
+        ' OJO: el valor inicial define el TIPO del campo. Con `invalid` el campo queda sin tipo
+        ' y las asignaciones posteriores se DESCARTAN EN SILENCIO (docs/ROKU-GOTCHAS.md §19).
+        ' Por eso la sesión y la guía arrancan como arrays asociativos vacíos, no como invalid.
+        session: {}               ' UserInfo en memoria; lo persistente va al registry
         isLoggedIn: false
 
         ' --- Catálogo (CU-05, 06, 07, 11, 12) ---
@@ -28,7 +31,7 @@ sub Main()
         favoriteIds: []
 
         ' --- Guía (CU-10) ---
-        epg: invalid
+        epg: {}
 
         ' --- Conectividad (CU-18) ---
         isOnline: true

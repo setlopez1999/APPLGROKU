@@ -135,3 +135,11 @@ function ResponseErrorMessage(json as object) as string
     if msg = "" then return "credenciales incorrectas"
     return msg
 end function
+
+' ¿Hay sesión de verdad? Una sesión "vacía" es un array asociativo SIN campos, no `invalid`: el nodo
+' global necesita un valor inicial con tipo para poder guardarla (docs/ROKU-GOTCHAS.md §19).
+function tvHasSession(userInfo as object) as boolean
+    if userInfo = invalid then return false
+    if type(userInfo) <> "roAssociativeArray" then return false
+    return userInfo.DoesExist("userEmail")
+end function

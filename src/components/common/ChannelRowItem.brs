@@ -30,17 +30,34 @@ sub onContentChanged()
 
     cells = content.cells
     if cells = invalid then return
+    if cells.Count() = 0 then return
+
+    ' Ancho DINÁMICO. El número de columnas cambia con los datos (de 1 a 5, ver EpgGrid), así que con
+    ' un ancho fijo las celdas se salían de la pantalla y la de AHORA quedaba cortada.
+    ' Verificado en el simulador el 2026-09-21 con 4 columnas.
+    disponible = CELLS_WIDTH() - (cells.Count() - 1) * CELL_SPACING()
+    ancho = Int(disponible / cells.Count())
+    if ancho < 120 then ancho = 120
 
     for each cell in cells
-        m.cellsGroup.appendChild(buildCell(cell))
+        m.cellsGroup.appendChild(buildCell(cell, ancho))
     end for
 end sub
 
-function buildCell(cell as object) as object
+' Espacio horizontal para las celdas: el ancho de la fila menos la zona del canal (logo+nº+nombre).
+function CELLS_WIDTH() as integer
+    return 1232
+end function
+
+function CELL_SPACING() as integer
+    return 12
+end function
+
+function buildCell(cell as object, ancho as integer) as object
     group = CreateObject("roSGNode", "Group")
 
     bg = group.createChild("Rectangle")
-    bg.width = 380
+    bg.width = ancho
     bg.height = 88
 
     ' Celda vacía: el canal no tiene programa en esa columna. Se dibuja igual para que la rejilla
@@ -58,14 +75,14 @@ function buildCell(cell as object) as object
 
     titulo = group.createChild("Label")
     titulo.translation = [16, 12]
-    titulo.width = 348
+    titulo.width = ancho - 32
     titulo.font = "font:SmallSystemFont"
     titulo.color = m.brand.textPrimary
     titulo.text = tvCellTitle(cell)
 
     rango = group.createChild("Label")
     rango.translation = [16, 48]
-    rango.width = 348
+    rango.width = ancho - 32
     rango.font = "font:SmallestSystemFont"
     rango.color = m.brand.textSecondary
     rango.text = cell.rango
@@ -74,13 +91,13 @@ function buildCell(cell as object) as object
     if cell.esAhora
         track = group.createChild("Rectangle")
         track.translation = [16, 76]
-        track.width = 348
+        track.width = ancho - 32
         track.height = 4
         track.color = m.brand.surface
 
         fill = group.createChild("Rectangle")
         fill.translation = [16, 76]
-        fill.width = Int((348 * cell.progreso) / 100)
+        fill.width = Int(((ancho - 32) * cell.progreso) / 100)
         fill.height = 4
         fill.color = m.brand.liveNow
     end if

@@ -103,8 +103,14 @@ function BrandConfig() as object
         focusBorderWidth: 6
 
         ' ---- Controles "glass" (un solo switch para toda la app) ----
+        ' controlSurface es el fondo de TODO control en reposo: iconos de la navbar, botones de
+        ' "Mi lista"/pantalla completa y pildoras de categoria inactivas. Va calculado aqui y no en
+        ' el componente: si falta, Roku recibe invalid y pinta el rectangulo BLANCO, con lo que el
+        ' texto claro encima desaparece (visto en el simulador el 2026-09-21).
         glassControls: true
         glassAlpha: 0.45
+        controlSurface: "0x161619" + "72"           ' surface al 45%
+        controlSurfaceDisabled: "0x161619" + "4C"   ' surface al 30%
 
         ' ---- Formas (px de 1920x1080; equivalen a los dp del Kotlin x2) ----
         cardRadius: 24

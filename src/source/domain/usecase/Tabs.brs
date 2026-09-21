@@ -63,7 +63,12 @@ end function
 
 ' `enabledvod` del backend decide si hay pestaña de Contenidos.
 function tvContentAvailabilityFromUserInfo(userInfo as object) as string
+    ' Comprobación en línea, sin llamar a otro archivo: con los <script> explícitos de SceneGraph,
+    ' cada dependencia cruzada obliga a añadir includes en todos los componentes que la arrastren
+    ' (docs/ROKU-GOTCHAS.md §16). Los archivos de `domain/` se mantienen autocontenidos.
     if userInfo = invalid then return "absent"
+    if type(userInfo) <> "roAssociativeArray" then return "absent"
+    if not userInfo.DoesExist("enabledVod") then return "absent"
     if userInfo.enabledVod then return "data"
     return "off"
 end function
