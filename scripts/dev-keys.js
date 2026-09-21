@@ -34,21 +34,50 @@ async function main() {
     }
   }
 
+  let perdidas = 0;
   for (const key of keys) {
-    const res = await fetch(`http://${host}:${PORT}/keypress/${key}`, { method: 'POST' });
+    const ok = await pressWithRetry(host, key);
+    if (!ok) perdidas++;
     const label = key.startsWith('Lit_') ? key : key.padEnd(8);
-    process.stdout.write(`${label} ${res.status === 200 ? 'ok' : 'HTTP ' + res.status}  `);
+    process.stdout.write(`${label} ${ok ? 'ok' : 'PERDIDA'}  `);
     await sleep(DELAY_MS);
   }
   console.log('');
+  if (perdidas > 0) console.error(`  ${perdidas} tecla(s) perdidas: la secuencia NO es fiable`);
+}
+
+/**
+ * Sobre WiFi, contra un Roku real, alguna petición ECP se pierde. Sin reintento la secuencia se
+ * desincroniza y parece un bug de la app: perseguí un rato un "Back que no funciona" que en
+ * realidad era una tecla que nunca salió de aquí (2026-09-21).
+ */
+async function pressWithRetry(host, key, intentos = 3) {
+  for (let i = 0; i < intentos; i++) {
+    try {
+      const res = await fetch(`http://${host}:${PORT}/keypress/${key}`, { method: 'POST' });
+      if (res.status === 200 || res.status === 202 || res.status === 204) return true;
+    } catch (err) {
+      // reintento
+    }
+    await sleep(200);
+  }
+  return false;
 }
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Solo los caracteres que romperían la ruta de la URL. El resto viaja tal cual. */
+/**
+ * Percent-encoding de todo lo que no sea alfanumérico, que es lo que documenta Roku para ECP.
+ *
+ * OJO, hay una diferencia entre aparato y simulador (verificada el 2026-09-21):
+ *   Roku real   → `Lit_@` NO escribe nada; hay que mandar `Lit_%40`
+ *   brs-desktop → al revés: `Lit_%40` no escribe nada y `Lit_@` sí
+ * Manda el aparato real, así que se escapa. Si algún día hace falta teclear en el simulador, este
+ * es el único sitio donde se cambia.
+ */
 function escapeLiteral(ch) {
-  const needsEscape = [' ', '#', '?', '%', '&', '+', '/', '\\'];
-  return needsEscape.includes(ch) ? '%' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0') : ch;
+  if (/[A-Za-z0-9]/.test(ch)) return ch;
+  return '%' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0');
 }

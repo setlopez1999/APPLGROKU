@@ -43,7 +43,7 @@ sub Main()
         isOnline: true
     })
 
-    scene = screen.CreateScene("MainScene")
+    screen.CreateScene("MainScene")
     screen.Show()
 
     while true

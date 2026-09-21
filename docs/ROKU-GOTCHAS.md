@@ -338,3 +338,93 @@ end if
 Consecuencia: como la lista no tiene el foco, su `focusPercent` siempre vale 0 y **no sirve para
 pintar el marco de selección**. Se pinta desde un campo propio del `ContentNode` de cada fila
 (`isSelected`), que el item observa.
+
+---
+
+## 22. `secureMode` no está en el `Keyboard`, está en su `TextEditBox`
+
+**Verificado en un Roku Express el 2026-09-21.** El simulador lo aceptaba sin rechistar; el aparato
+real avisa y lo ignora:
+
+```
+Tried to set nonexistent field "securemode" of a "Keyboard" node
+```
+
+Consecuencia real: **la contraseña se veía EN CLARO** en la pantalla de login. Lo correcto es:
+
+```brightscript
+caja = m.keyboard.textEditBox
+if caja <> invalid then caja.secureMode = true
+```
+
+Y hay un segundo detalle: el `TextEditBox` **no existe hasta que el teclado es visible**. Si se
+llama antes, `caja` es `invalid`, la asignación se salta en silencio y el campo se queda como
+estuviera. Hay que poner `visible = true` ANTES de tocarlo.
+
+---
+
+## 23. No crear `roHttpAgent` en el hilo de render
+
+**Verificado en un Roku Express el 2026-09-21.** Para mandar el `User-Agent: APPMOVIL-*` que exige
+el servidor de vídeo (`BACKEND-GOTCHAS.md` §1) se intentó lo obvio:
+
+```brightscript
+agent = CreateObject("roHttpAgent")      ' ← revienta
+video.setHttpAgent(agent)
+```
+
+```
+Execution timeout (runtime error &h23) in LiveScreen.brs(417)
+   agent = CreateObject("roHttpAgent")
+```
+
+Dispara el watchdog del hilo de render y **mata la reproducción antes de empezar**. El simulador lo
+aceptaba tan tranquilo.
+
+**La vía que sí funciona**: las cabeceras del propio contenido.
+
+```brightscript
+content.HttpHeaders = ["User-Agent: APPMOVIL-roku"]
+```
+
+Verificado que el campo existe (no aparece el aviso de "nonexistent field") y que el vídeo arranca.
+**Queda por confirmar que el servidor lo recibe**: la cuenta de pruebas es de Oneplay, que NO exige
+el User-Agent. Hay que repetirlo contra un ISP de Playcom.
+
+---
+
+## 24. El hilo de render tiene presupuesto por frame, y en gama baja se agota
+
+**Verificado en un Roku Express el 2026-09-21.** El arranque hacía, en un solo frame: aplanar 50
+canales, construir la parrilla con sus 23 filas y celdas, montar 28 rectángulos de degradado y
+arrancar el vídeo. La función **terminaba entera** —se comprobó con trazas paso a paso— y aun así:
+
+```
+Execution timeout (runtime error &h23)
+```
+
+No es una línea lenta: es la suma. Roku corta cualquier callback del hilo de render que se pase del
+presupuesto, y un Express es lento.
+
+**La solución**: repartir el arranque en pasos, uno por tick de un `Timer` corto.
+
+```
+paso 1  aplanar el catálogo
+paso 2  arrancar el vídeo
+paso 3  pintar la parrilla
+paso 4  pedir guía y favoritos
+```
+
+Ninguno agota el frame por sí solo. Esto es el objetivo nº3 de `PLAN.md` dejando de ser teoría.
+
+---
+
+## 25. La captura de pantalla NO incluye el vídeo
+
+**Verificado en un Roku Express el 2026-09-21.** `plugin_inspect` captura el **plano de gráficos**,
+no el de vídeo, que es una capa de hardware aparte. Una captura con el fondo negro **no significa
+que el vídeo no esté reproduciéndose**.
+
+Para saber si reproduce de verdad sin mirar el televisor: `videoNode.state = "playing"`. En este
+proyecto el heartbeat de CU-16 ya lo exige, así que **un heartbeat saliendo es prueba de que hay
+vídeo**.

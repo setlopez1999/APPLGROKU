@@ -55,11 +55,11 @@ sub onStartCatchup()
     video = m.top.videoNode
     if video = invalid then return
 
-    applyStreamUserAgent(video)
     content = CreateObject("roSGNode", "ContentNode")
     content.url = destino.url
     content.streamformat = "hls"
     content.title = destino.titulo
+    applyStreamHeaders(content)
 
     video.control = "stop"
     video.content = content
@@ -142,12 +142,11 @@ sub tune(channel as object)
 
     video = m.top.videoNode
     if video <> invalid
-        applyStreamUserAgent(video)
-
         content = CreateObject("roSGNode", "ContentNode")
         content.url = channel.streamUrl
         content.streamformat = "hls"
         content.title = channel.nombre
+        applyStreamHeaders(content)
 
         ' DETENER, no pausar: pausar no libera el decodificador y solo hay uno (§9).
         video.control = "stop"
@@ -160,11 +159,17 @@ sub tune(channel as object)
     showInfo()
 end sub
 
-sub applyStreamUserAgent(video as object)
-    if GetInterface(video, "ifHttpAgent") = invalid then return
-    agent = CreateObject("roHttpAgent")
-    agent.AddHeader("User-Agent", tvStreamUserAgent())
-    video.setHttpAgent(agent)
+' El User-Agent del vídeo va en las CABECERAS DEL CONTENIDO, no con un roHttpAgent.
+'
+' VERIFICADO EN UN ROKU EXPRESS el 2026-09-21: crear `roHttpAgent` en el hilo de render dispara el
+' watchdog y mata la reproduccion antes de empezar:
+'     Execution timeout (runtime error &h23) ... agent = CreateObject("roHttpAgent")
+' El simulador lo aceptaba sin rechistar. Ver docs/ROKU-GOTCHAS.md 23.
+'
+' Sin este User-Agent, los servidores de Playcom devuelven 403 y el video sale negro sin ningun
+' error que lo explique (docs/BACKEND-GOTCHAS.md 1).
+sub applyStreamHeaders(content as object)
+    content.HttpHeaders = ["User-Agent: " + tvStreamUserAgent()]
 end sub
 
 ' ---- barra de información ----------------------------------------------------

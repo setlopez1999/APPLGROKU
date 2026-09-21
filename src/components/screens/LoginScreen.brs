@@ -146,7 +146,11 @@ end function
 
 sub openKeyboard(field as string)
     m.editingField = field
-    m.keyboard.secureMode = (field = "password")
+
+    ' El teclado tiene que estar VISIBLE antes de tocar su TextEditBox: si no, el nodo interno aun
+    ' no existe y la asignacion se pierde en silencio.
+    m.keyboardLayer.visible = true
+    setSecureMode(field = "password")
 
     if field = "email"
         m.keyboard.text = m.email
@@ -154,8 +158,15 @@ sub openKeyboard(field as string)
         m.keyboard.text = m.password
     end if
 
-    m.keyboardLayer.visible = true
     m.keyboard.setFocus(true)
+end sub
+
+' El nodo `Keyboard` NO tiene campo `secureMode`: lo tiene su `TextEditBox` interno. El simulador
+' aceptaba `keyboard.secureMode` sin rechistar y en un Roku de verdad la contrasena se veia EN
+' CLARO en pantalla. Verificado en un Roku Express el 2026-09-21 (docs/ROKU-GOTCHAS.md 22).
+sub setSecureMode(oculto as boolean)
+    caja = m.keyboard.textEditBox
+    if caja <> invalid then caja.secureMode = oculto
 end sub
 
 sub commitKeyboard()

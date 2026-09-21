@@ -18,8 +18,11 @@ sub init()
     m.error.color = m.brand.liveNow
 
     m.teclado = m.top.findNode("teclado")
-    ' Oculto: en una TV el PIN lo ve toda la habitación.
-    m.teclado.secureMode = true
+
+    ' Oculto: en una TV el PIN lo ve toda la habitacion. OJO: el campo `secureMode` NO esta en el
+    ' nodo `Keyboard`, sino en su `TextEditBox` interno (docs/ROKU-GOTCHAS.md 22).
+    caja = m.teclado.textEditBox
+    if caja <> invalid then caja.secureMode = true
 end sub
 
 sub onPasoChanged()

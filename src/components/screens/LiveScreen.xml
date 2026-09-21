@@ -64,6 +64,11 @@
     <CategoryTabs id="tabs" translation="[64,610]" />
     <ChannelGrid id="grid" translation="[64,720]" />
 
+    <!-- Arranque por pasos: en un Roku Express, hacer el aplanado del catalogo + la parrilla +
+         arrancar el video en un SOLO frame del hilo de render dispara el watchdog
+         ("Execution timeout", docs/ROKU-GOTCHAS.md 24). Cada tick hace un paso. -->
+    <Timer id="bootTimer" duration="0.2" repeat="true" />
+
     <Label id="status" translation="[64,400]" width="1200" font="font:MediumSystemFont" />
   </children>
 

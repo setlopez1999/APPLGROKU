@@ -168,13 +168,22 @@ completo en `localStorage`; ese JSON puede acercarse al límite. **Regla propues
 lo mínimo persistente (deviceId, email, password cifrado, rememberMe, flags); el `UserInfo` completo
 vive en memoria y se recarga de `get-web2` al arrancar. Confirmar tamaño real con una cuenta grande.
 
-### 8.5 — User-Agent del reproductor · **verificar pronto**
+### 8.5 — User-Agent del reproductor · **RESUELTA 2026-09-21**
 
-Los servidores de Playcom devuelven **403 a cualquier User-Agent que no empiece por `APPMOVIL`**
-(`BACKEND-GOTCHAS.md` §1). Hay que confirmar cuál de las dos vías funciona en el nodo `Video`:
-cabeceras en el `ContentNode` del stream, o un `roHttpAgent` asociado al nodo. **Si ninguna funciona,
-el vídeo de ese ISP no se ve y es un bloqueo de proyecto** — por eso se verifica en la Fase 0, no en
-la Fase 2.
+La vía obvia (`CreateObject("roHttpAgent")` + `video.setHttpAgent()`) **no sirve**: crear el agente
+en el hilo de render dispara el watchdog y mata la reproducción antes de empezar. Verificado en un
+Roku Express (`ROKU-GOTCHAS.md` §23).
+
+**La vía buena son las cabeceras del contenido:**
+
+```brightscript
+content.HttpHeaders = ["User-Agent: APPMOVIL-roku"]
+```
+
+El campo existe (el aparato no lo rechaza) y el vídeo arranca. **Queda un fleco honesto**: que el
+servidor reciba de verdad esa cabecera no se ha podido comprobar, porque la cuenta de pruebas es de
+Oneplay y Oneplay NO exige el User-Agent. Hay que repetirlo contra un ISP de Playcom, que es quien
+devuelve 403 sin él.
 
 ### 8.6 — Certificados TLS
 

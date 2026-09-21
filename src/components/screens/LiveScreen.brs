@@ -42,10 +42,13 @@ sub init()
     m.pendingChannel = invalid
     m.utcOffset = tvDeviceUtcOffsetSec()
 
-    loadCatalog()
-    fetchGuide()
-    fetchFavorites()
     applyZone()
+
+    ' El trabajo pesado NO se hace aqui: se reparte en pasos, uno por tick (ver bootTimer).
+    m.bootStep = 0
+    m.bootTimer = m.top.findNode("bootTimer")
+    m.bootTimer.observeField("fire", "onBootStep")
+    m.bootTimer.control = "start"
 
     ' Igual que MainScreen: si esta pantalla recibe el foco, lo delega en su zona activa
     ' (docs/ROKU-GOTCHAS.md §21).
@@ -117,8 +120,6 @@ sub loadCatalog()
     else
         print "[TV] NINGUN canal reproducible"
     end if
-    playCurrent()
-    refreshGrid()
 end sub
 
 sub fetchGuide()
@@ -358,7 +359,35 @@ end sub
 ' ---- reproducción ------------------------------------------------------------
 
 sub onVideoNodeReady()
-    playCurrent()
+    ' No se arranca aqui: el video entra como un paso mas del arranque escalonado. Hacerlo en el
+    ' observer metia el aplanado, la parrilla y el arranque del video en el mismo frame.
+    m.videoListo = true
+end sub
+
+' Un paso por tick. Ninguno es lo bastante gordo para agotar el presupuesto del frame.
+sub onBootStep()
+    m.bootStep = m.bootStep + 1
+
+    if m.bootStep = 1
+        loadCatalog()
+        return
+    end if
+
+    if m.bootStep = 2
+        playCurrent()
+        return
+    end if
+
+    if m.bootStep = 3
+        refreshGrid()
+        return
+    end if
+
+    if m.bootStep = 4
+        fetchGuide()
+        fetchFavorites()
+        m.bootTimer.control = "stop"
+    end if
 end sub
 
 sub playCurrent()
@@ -373,12 +402,11 @@ sub playCurrent()
         return
     end if
 
-    applyStreamUserAgent(video)
-
     content = CreateObject("roSGNode", "ContentNode")
     content.url = m.currentChannel.streamUrl
     content.streamformat = "hls"
     content.title = m.currentChannel.nombre
+    applyStreamHeaders(content)
 
     ' Detener antes de cambiar: pausar NO libera el decodificador, y solo hay uno (§9).
     video.control = "stop"
@@ -403,20 +431,17 @@ sub onSyncChannel()
     refreshGrid()
 end sub
 
-' Decisión abierta §8.5 de plan_migracion.md: el servidor de vídeo devuelve 403 a cualquier
-' User-Agent que no empiece por APPMOVIL, y sin él TODO el vídeo sale negro sin ningún error que lo
-' explique (§1). Aquí se usa la vía del roHttpAgent, con guard por si el nodo no la soporta.
-' **HAY QUE CONFIRMARLO EN EL APARATO**: si esta vía no funciona, la alternativa son las cabeceras
-' en el ContentNode. Es lo primero que hay que probar con un Roku delante.
-sub applyStreamUserAgent(video as object)
-    if GetInterface(video, "ifHttpAgent") = invalid
-        print "[LiveScreen] el nodo Video no expone ifHttpAgent — revisar el User-Agent APPMOVIL"
-        return
-    end if
-
-    agent = CreateObject("roHttpAgent")
-    agent.AddHeader("User-Agent", tvStreamUserAgent())
-    video.setHttpAgent(agent)
+' El User-Agent del vídeo va en las CABECERAS DEL CONTENIDO, no con un roHttpAgent.
+'
+' VERIFICADO EN UN ROKU EXPRESS el 2026-09-21: crear `roHttpAgent` en el hilo de render dispara el
+' watchdog y mata la reproduccion antes de empezar:
+'     Execution timeout (runtime error &h23) ... agent = CreateObject("roHttpAgent")
+' El simulador lo aceptaba sin rechistar. Ver docs/ROKU-GOTCHAS.md 23.
+'
+' Sin este User-Agent, los servidores de Playcom devuelven 403 y el video sale negro sin ningun
+' error que lo explique (docs/BACKEND-GOTCHAS.md 1).
+sub applyStreamHeaders(content as object)
+    content.HttpHeaders = ["User-Agent: " + tvStreamUserAgent()]
 end sub
 
 ' ---- interacción -------------------------------------------------------------
