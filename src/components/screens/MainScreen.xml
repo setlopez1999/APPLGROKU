@@ -25,6 +25,7 @@
          Una pantalla con fondo sólido aquí taparía el modo inmersivo. -->
     <LiveScreen id="live" />
     <TopNavBar id="navBar" />
+    <ProfileMenu id="profileMenu" visible="false" />
   </children>
 
 </component>

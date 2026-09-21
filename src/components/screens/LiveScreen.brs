@@ -35,10 +35,12 @@ sub init()
     m.guide = {}
     m.epgWindow = { cells: {}, pastColumns: 0, futureColumns: 0 }
     m.catchupVerified = []
+    m.favoriteIds = []
     m.utcOffset = tvDeviceUtcOffsetSec()
 
     loadCatalog()
     fetchGuide()
+    fetchFavorites()
     applyZone()
 
     ' Igual que MainScreen: si esta pantalla recibe el foco, lo delega en su zona activa
@@ -147,6 +149,63 @@ sub onGuideResponse()
     refreshInfo()
 end sub
 
+' ---- favoritos (CU-08 / CU-09) -----------------------------------------------
+
+sub fetchFavorites()
+    userInfo = m.global.session
+    if not tvHasSession(userInfo) then return
+
+    m.favTask = CreateObject("roSGNode", "ApiTask")
+    m.favTask.observeField("response", "onFavoritesResponse")
+    m.favTask.request = tvApiRequest(tvApiGetFavoritesUrl(m.brand.baseUrl, userInfo.userEmail))
+    m.favTask.control = "RUN"
+end sub
+
+sub onFavoritesResponse()
+    response = m.favTask.response
+    if not response.ok then return
+
+    m.favoriteIds = tvParseFavoriteIds(response.json)
+    m.global.favoriteIds = m.favoriteIds
+    print "[TV] favoritos: "; m.favoriteIds.Count()
+    refreshFavoriteState()
+end sub
+
+sub refreshFavoriteState()
+    if m.currentChannel = invalid then return
+    m.display.isFavorite = tvIsFavorite(m.favoriteIds, m.currentChannel.cnId)
+end sub
+
+sub toggleFavorite()
+    if m.currentChannel = invalid then return
+    userInfo = m.global.session
+    if not tvHasSession(userInfo) then return
+
+    accion = tvToggleFavoriteAction(m.favoriteIds, m.currentChannel.cnId)
+    if accion = "add"
+        url = tvApiAddFavoriteUrl(m.brand.baseUrl, userInfo.userEmail, m.currentChannel.cnId)
+    else
+        url = tvApiDeleteFavoriteUrl(m.brand.baseUrl, userInfo.userEmail, m.currentChannel.cnId)
+    end if
+    print "[TV] favorito "; accion; " cn="; m.currentChannel.cnId
+
+    ' Actualización optimista: la estrella responde al instante. La lista de verdad la sigue
+    ' mandando get-favorite en la recarga de después.
+    m.favoriteIds = tvToggleFavoriteLocal(m.favoriteIds, m.currentChannel.cnId)
+    m.global.favoriteIds = m.favoriteIds
+    refreshFavoriteState()
+
+    m.toggleTask = CreateObject("roSGNode", "ApiTask")
+    m.toggleTask.observeField("response", "onToggleFavoriteResponse")
+    m.toggleTask.request = tvApiRequest(url)
+    m.toggleTask.control = "RUN"
+end sub
+
+sub onToggleFavoriteResponse()
+    ' El servidor es la fuente de verdad: se recarga en vez de fiarse del optimismo.
+    fetchFavorites()
+end sub
+
 sub refreshGrid()
     now& = tvNowSeconds()
     m.epgWindow = tvBuildEpgWindow(m.guide, m.filtered, now&, m.brand.isCatchupClient, m.catchupVerified, m.utcOffset)
@@ -195,6 +254,7 @@ sub playCurrent()
 
     m.top.currentCnId = m.currentChannel.cnId
     refreshInfo()
+    refreshFavoriteState()
 end sub
 
 ' Vuelta de pantalla completa: el usuario puede haber zapeado. Se actualiza la info y la parrilla
@@ -252,7 +312,7 @@ end sub
 
 sub onDisplayAction()
     if m.display.action = "fullscreen" then m.top.requestFullscreen = true
-    ' TODO(CU-08): "mylist" cuando esté cableado el repositorio de favoritos.
+    if m.display.action = "mylist" then toggleFavorite()
 end sub
 
 ' ---- foco --------------------------------------------------------------------

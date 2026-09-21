@@ -10,6 +10,8 @@ sub init()
     m.navBar = m.top.findNode("navBar")
     m.navBar.observeField("action", "onNavAction")
     m.live.observeField("requestFullscreen", "onRequestFullscreen")
+    m.profileMenu = m.top.findNode("profileMenu")
+    m.profileMenu.observeField("action", "onProfileAction")
 
     ' Las pestañas se resuelven con la regla probada: switch de marca × lo que manda el backend.
     userInfo = m.global.session
@@ -42,6 +44,24 @@ sub onRequestFullscreen()
     m.top.fullscreenCnId = m.live.currentCnId
 end sub
 
+sub openProfileMenu()
+    m.profileMenu.visible = true
+    m.profileMenu.setFocus(true)
+end sub
+
+sub closeProfileMenu()
+    m.profileMenu.visible = false
+    applyZone()
+end sub
+
+sub onProfileAction()
+    if m.profileMenu.action = "logout"
+        m.top.logout = true
+        return
+    end if
+    closeProfileMenu()
+end sub
+
 sub onResume()
     m.live.syncCnId = m.top.resumeCnId
     m.live.setFocus(true)
@@ -60,9 +80,7 @@ sub onNavAction()
     action = m.navBar.action
 
     if action = "profile"
-        ' El menú de perfil (Perfil / Mi Plan / Cambiar contraseña / Cerrar sesión) llega con su
-        ' pantalla. Por ahora es la salida, para poder probar el ciclo completo en el aparato.
-        m.top.logout = true
+        openProfileMenu()
         return
     end if
 
@@ -77,6 +95,10 @@ end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
+
+    ' El menú de cuenta tiene prioridad: mientras está abierto, el resto de la pantalla no responde
+    ' (prioridad del ATRÁS, docs/plan_migracion.md §6).
+    if m.profileMenu.visible then return false
 
     ' LiveScreen deja pasar el "arriba" cuando ya está en su zona más alta: ahí se sube a la barra.
     if key = "up" and m.zone = m.ZONE_CONTENT

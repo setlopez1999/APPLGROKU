@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Menú de cuenta (docs/DISENO.md §2.6): Perfil · Mi Plan · Cambiar contraseña · Cerrar sesión.
+  Panel lateral derecho sobre el resto, como en el rediseño Kotlin.
+
+  Cubre CU-02 (perfil y plan) y CU-03 (cambio de contraseña), que en el original son SOLO
+  informativos: no hay API de cambio de contraseña, se manda al usuario a soporte.
+
+  ⚠ NO VERIFICADO EN UN ROKU FÍSICO.
+-->
+<component name="ProfileMenu" extends="Group">
+
+  <interface>
+    <!-- "logout" o "close" -->
+    <field id="action" type="string" alwaysNotify="true" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/screens/ProfileMenu.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
+
+  <children>
+    <Rectangle id="scrim" width="1920" height="1080" />
+    <Rectangle id="panel" translation="[1160,0]" width="760" height="1080" />
+
+    <Label id="title" translation="[1216,64]" font="font:LargeBoldSystemFont" text="Cuenta" />
+
+    <LayoutGroup id="items" translation="[1216,160]" layoutDirection="vert" itemSpacings="[12]" />
+
+    <Label id="content" translation="[1216,560]" width="648" height="460" wrap="true"
+           font="font:SmallSystemFont" />
+  </children>
+
+</component>

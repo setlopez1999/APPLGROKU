@@ -33,6 +33,7 @@
   <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelAccess.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Favorites.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelInfo.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Epg.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/EpgGrid.brs" />
