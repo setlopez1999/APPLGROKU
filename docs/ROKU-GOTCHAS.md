@@ -241,7 +241,9 @@ Para no volver a dudar de estas piezas:
 | `roRegistrySection` (leer y escribir) | ✅ |
 | Nodo `Keyboard` y captura de texto | ✅ |
 | `<script>` de `pkg:/source/` en componentes | ✅ (obligatorios, ver §16) |
-| `platform=12` aceptado por el backend | ✅ |
+| `platform=12` aceptado por el backend | ✅ **login real completo** con cuenta de Oneplay |
+| `roEVPCipher` (cifrar/descifrar el password en el registro) | ✅ ida y vuelta: el "recordarme" rellena y el login vuelve a funcionar |
+| Aplanado del catálogo sobre datos reales | ✅ 50 canales → **23 reproducibles en 2 categorías**, cuadra con el plan |
 
 **Salvedad**: el simulador (`brs-desktop`, extensión `brs-scenegraph`) implementa SceneGraph de forma
 PARCIAL. Lo que funciona aquí es buena señal, pero el render, el foco fino y sobre todo el **vídeo**

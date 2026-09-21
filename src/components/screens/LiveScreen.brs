@@ -96,6 +96,11 @@ sub loadCatalog()
     if userInfo <> invalid then premiums = userInfo.premiumsAllowed
 
     m.currentChannel = tvGetFirstAllowedChannel(m.channels, m.sections, premiums)
+    if m.currentChannel <> invalid
+        print "[TV] primer canal permitido: "; m.currentChannel.nombre; " ("; m.currentChannel.numero; ")"
+    else
+        print "[TV] NINGUN canal reproducible"
+    end if
     playCurrent()
     refreshGrid()
 end sub

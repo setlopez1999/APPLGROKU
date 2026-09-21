@@ -403,3 +403,60 @@ Para que no se repitan:
 - `app-lg/docs/cu/STATE.md` — estado global y ciclo de vida
 - `app-lg/docs/USE-CASES.md` — los 20 casos de uso funcionales
 - `app-lg/docs/cu/CU-01..20` — cada caso a detalle (versión agnóstica, del original JS)
+
+
+---
+
+## Medición del 2026-09-21 — cuenta real de Oneplay, desde el canal Roku
+
+> Hecha con `npm run audit` (ver `PLAN.md` §9.2) contra `lg@test.tv` en `oneplay.iptvperu.tv`.
+> Confirma los puntos §3, §5, §8 y §10 con datos frescos, y añade hostnames concretos.
+
+**El plan del cliente (§5) cuadra exacto**, igual que en la medición anterior:
+
+```
+50 canales en 9 secciones · 23 con url · premiumsallowed: [13, 239]
+Nacionales (st_id 239)  17 canales, 17 con url   ← en el plan
+Musicales  (st_id 13)    6 canales,  6 con url   ← en el plan
+Las otras 7 secciones    27 canales,  0 con url  ← fuera
+plan "Plan A" → cantidad_canales: 23             ← cuadra
+```
+
+Detalle nuevo: en esta cuenta **las 9 secciones vienen con `premium: 1`**, y `premiumsallowed` trae
+justo las dos que tienen url. Los dos mecanismos (filtrar urls vacías y comprobar el premium) dan el
+mismo resultado, no se contradicen.
+
+**Entrega real de vídeo: 17 de 23 canales.**
+
+| Fallo | Canales | Causa |
+|---|---|---|
+| TLS | ATV SUR, Telesur Ingles, Tropical Moon, Zoomback | **`centauro.cd-latam.com` tiene el certificado vencido** |
+| TLS | pbo_prueba | `cdntest.cd-latam.com`: el certificado no cubre ese hostname (SNI) |
+| 404 | Willax | `principal3/` — la ruta no está publicada |
+
+**El rodeo del §8 sigue funcionando y está verificado hoy**: la misma ruta responde 200 por el otro
+hostname, porque es el mismo servidor.
+
+```
+https://centauro.cd-latam.com:1936/nacionales_pe/atvplus.stream/playlist.m3u8  → TLS (cert vencido)
+https://oneplay.iptvperu.tv:1936/nacionales_pe/atvplus.stream/playlist.m3u8    → 200, MPEG-TS válido
+```
+
+Son 4 canales que parecen caídos y **emiten perfectamente**. Lo correcto es renovar el certificado;
+reescribir el hostname desde la app taparía el problema y se rompería si los hosts dejan de apuntar
+al mismo sitio.
+
+**El flag `catchup` miente en los 4 casos (§3).** Los cuatro marcados están en directorios que,
+según el §3, no graban — y la sonda lo confirma: los cuatro dan 404.
+
+```
+Latina        failover-SRT   → 404
+América TV    failover       → 404
+PANAMERICANA  artemisa2      → 404
+Willax        principal3     → 404  (su vivo tampoco responde)
+```
+
+En esta cuenta, **cero canales con catch-up real**. Sin la sonda, la app dibujaría el ▶ en cuatro
+canales que fallarían todos al pulsarlos.
+
+**Ventanas de vivo cortas (§10) confirmadas**: todas las chunklists traen **4 segmentos**.

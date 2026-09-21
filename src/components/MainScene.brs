@@ -74,6 +74,8 @@ sub onLoginSuccess()
     m.global.channels = catalog.channels
     m.global.sections = catalog.sections
 
+    print "[TV] catalogo: "; catalog.channels.Count(); " canales reproducibles en "; catalog.sections.Count(); " categorias"
+
     main = CreateObject("roSGNode", "MainScreen")
     main.videoNode = m.videoPlayer
     main.observeField("logout", "onLogout")
