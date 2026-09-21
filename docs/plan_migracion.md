@@ -3,7 +3,8 @@
 > Origen funcional: `C:\Users\PC1\Desktop\P\app-lg\` — app original JS (LG/Samsung/Android TV).
 > Origen de diseño: `C:\Users\PC1\Desktop\P\app-lg-kotlin-rediseno\` (rama `NORETURNOVERLAYNEWFLOW`).
 > Destino: `C:\Users\PC1\Desktop\P\applg-roku\` — canal nativo Roku (BrightScript/SceneGraph).
-> Estado: Fase 0 (planificación). Sin código de negocio.
+> Estado: **19 de 20 CU implementados**, la mayoría verificados en ejecución contra el backend
+> de producción. Bitácora detallada en `PLAN.md` §10.
 
 ---
 
@@ -48,11 +49,11 @@
 | CU-07 | Categorías | `CategoryTabs` | Píldoras horizontales. Ocultar categorías que quedan vacías tras filtrar urls |
 | CU-08 | Toggle favorito | `ToggleFavoriteUseCase` + `FavoritesTask` | 3 endpoints, los 3 POST con query-string. `delete-favorite` es POST |
 | CU-09 | Mi lista | `MyListScreen` | Cruce favoritos × canales vigentes; los que ya no existen se saltan |
-| CU-10 | EPG | `EpgScreen` (grilla canal × tiempo) | **El punto más caro del port**: SceneGraph no da celdas de ancho proporcional. Ver §8.3 |
+| CU-10 | EPG | `ChannelGrid` + `EpgGrid` | Columnas FIJAS (3 pasadas + ahora + 1 futura), no anchos proporcionales. Resuelto, ver §8.3 |
 | CU-11 | Zapping | `ZappingUseCase` | **Loop, no recursión.** Y **sin CH+/CH-**: el control de Roku no los tiene (§8.2) |
 | CU-12 | Multi-CDN | `MultiCdnRepository` | GET `url_ip` → `deviceIp`; POST `api/get-ipurl {deviceid:1, networkid}` → `link`; `url = link + short_link`. Sin failover |
 | CU-13 | Info de canal + restricción IP | `CurrentChannelDisplay` + `ValidateIpRestrictionUseCase` | `POST api/channel-allowed-ip {ip, cn_id}`; 403 → modal |
-| CU-14 | Control parental | `AdultPinModal` + validación **por definir** | **Bloqueado**: no hay bcrypt en Roku (§8.1) |
+| CU-14 | Control parental | `PinModal` + `ParentalPin` | **PIN local del aparato**: el hash del backend es bcrypt y Roku no puede verificarlo. Resuelto, ver §8.1 |
 | CU-15 | Premium | `PremiumModal` + `PremiumAllowedUseCase` | Se revalida cada 60 s: si el usuario compra, se cierra el modal y reproduce |
 | CU-16 | Heartbeat | `HeartbeatTask` + nodo `Timer` (15 s) | `GET {token}/{cn_id}.json`, fire-and-forget. Se reinicia al empezar a reproducir |
 | CU-17 | Revalidación | `RevalidateTask` + nodo `Timer` (60 s) | Si `error==true` → logout. Reconstruir **solo si algo cambió** (`BACKEND-GOTCHAS.md` §6) |
@@ -110,7 +111,7 @@ distinto en el Roku Developer Dashboard**. Runbook en `MULTI_ISP.md`.
 
 ---
 
-## 8. Decisiones ABIERTAS (hay que resolverlas antes de tocar el CU correspondiente)
+## 8. Decisiones (las que quedan abiertas están marcadas)
 
 ### 8.1 — CU-14: el PIN parental y bcrypt · **RESUELTA 2026-09-21**
 
