@@ -15,6 +15,11 @@ sub init()
     m.profileMenu = m.top.findNode("profileMenu")
     m.profileMenu.observeField("action", "onProfileAction")
 
+    m.myList = m.top.findNode("myList")
+    m.myList.observeField("chosenCnId", "onListChosen")
+    m.search = m.top.findNode("search")
+    m.search.observeField("chosenCnId", "onSearchChosen")
+
     ' Las pestañas se resuelven con la regla probada: switch de marca × lo que manda el backend.
     userInfo = m.global.session
     m.navBar.tabs = tvResolveTabs(m.brand, "absent", tvContentAvailabilityFromUserInfo(userInfo))
@@ -44,6 +49,47 @@ end sub
 ' La pila de pantallas la gobierna MainScene: aquí solo se reenvía la petición hacia arriba.
 sub onRequestFullscreen()
     m.top.fullscreenCnId = m.live.currentCnId
+end sub
+
+' Mi lista y Buscar son pantallas que se superponen a la pestana, no pestanas nuevas: asi el
+' ATRAS devuelve a donde estabas, que es lo que espera el usuario.
+sub openTopScreen(pantalla as object)
+    m.myList.visible = false
+    m.search.visible = false
+
+    ' Los datos salen del estado global; estas pantallas no piden nada por su cuenta.
+    canales = m.global.channels
+    if canales = invalid then canales = []
+
+    if pantalla.id = "myList"
+        pantalla.currentCnId = m.live.currentCnId
+        pantalla.epgWindow = m.live.epgWindow
+        pantalla.channels = tvFavoriteChannels(m.global.favoriteIds, canales)
+    else
+        pantalla.epgWindow = m.live.epgWindow
+        pantalla.channels = canales
+    end if
+
+    pantalla.visible = true
+    pantalla.setFocus(true)
+end sub
+
+sub closeTopScreen()
+    m.myList.visible = false
+    m.search.visible = false
+    applyZone()
+end sub
+
+sub onListChosen()
+    closeTopScreen()
+    m.live.syncCnId = m.myList.chosenCnId
+    m.live.playCnId = m.myList.chosenCnId
+end sub
+
+sub onSearchChosen()
+    closeTopScreen()
+    m.live.syncCnId = m.search.chosenCnId
+    m.live.playCnId = m.search.chosenCnId
 end sub
 
 sub openProfileMenu()
@@ -102,6 +148,16 @@ sub onNavAction()
         return
     end if
 
+    if action = "mylist"
+        openTopScreen(m.myList)
+        return
+    end if
+
+    if action = "search"
+        openTopScreen(m.search)
+        return
+    end if
+
     if action = "home" or action = "live" or action = "events" or action = "content"
         m.navBar.selectedTab = action
         ' Solo "TV en directo" tiene pantalla; el resto quedan como pestañas sin contenido hasta que
@@ -117,6 +173,14 @@ function onKeyEvent(key as string, press as boolean) as boolean
     ' El menú de cuenta tiene prioridad: mientras está abierto, el resto de la pantalla no responde
     ' (prioridad del ATRÁS, docs/plan_migracion.md §6).
     if m.profileMenu.visible then return false
+
+    if m.myList.visible or m.search.visible
+        if key = "back"
+            closeTopScreen()
+            return true
+        end if
+        return false
+    end if
 
     ' LiveScreen deja pasar el "arriba" cuando ya está en su zona más alta: ahí se sube a la barra.
     if key = "up" and m.zone = m.ZONE_CONTENT

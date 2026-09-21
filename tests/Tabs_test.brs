@@ -45,4 +45,10 @@ sub testTabs()
     tvAssertEqual(tvHasSession({}), false, "un AA vacío no es una sesión")
     tvAssertEqual(tvHasSession(invalid), false, "invalid tampoco")
     tvAssertEqual(tvHasSession(user), true, "un UserInfo parseado sí lo es")
+
+    tvSuite("Marca — nombre en texto (fallback cuando no hay logo)")
+
+    tvAssertEqual(tvBrandText({ appName: "Oneplay", appBadge: "PE" }), "Oneplay PE", "nombre con badge")
+    tvAssertEqual(tvBrandText({ appName: "Playcom", appBadge: "" }), "Playcom", "sin badge no deja un espacio suelto")
+    tvAssertEqual(tvBrandText(invalid), "", "marca invalid no revienta")
 end sub

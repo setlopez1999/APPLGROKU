@@ -21,7 +21,7 @@
 
   <children>
     <Rectangle id="scrim" width="1920" height="1080" />
-    <Rectangle id="panel" translation="[1160,0]" width="760" height="1080" />
+    <RoundedRect id="panel" translation="[1160,0]" width="760" height="1080" shape="card" />
 
     <Label id="title" translation="[1216,64]" font="font:LargeBoldSystemFont" text="Cuenta" />
 

@@ -25,12 +25,16 @@
 
   <script type="text/brightscript" uri="pkg:/components/screens/MainScreen.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Tabs.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Favorites.brs" />
 
   <children>
     <!-- Sin fondo propio: en "TV en directo" el fondo ES el vídeo, que dibuja MainScene por detrás.
          Una pantalla con fondo sólido aquí taparía el modo inmersivo. -->
     <LiveScreen id="live" />
     <TopNavBar id="navBar" />
+    <MyListScreen id="myList" visible="false" />
+    <SearchScreen id="search" visible="false" />
     <ProfileMenu id="profileMenu" visible="false" />
   </children>
 

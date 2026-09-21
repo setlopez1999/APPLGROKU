@@ -22,6 +22,7 @@
   <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/SessionRules.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Tabs.brs" />
   <script type="text/brightscript" uri="pkg:/source/data/remote/ApiRoutes.brs" />
   <script type="text/brightscript" uri="pkg:/source/data/local/Session.brs" />
 
@@ -38,7 +39,7 @@
     </Group>
 
     <!-- ---- Formulario (derecha) ---- -->
-    <Rectangle id="card" translation="[960,240]" width="800" height="600" />
+    <RoundedRect id="card" translation="[960,240]" width="800" height="600" shape="card" />
 
     <Group id="form" translation="[1020,300]">
       <Label id="title" font="font:LargeBoldSystemFont" text="Iniciar sesión" />
@@ -47,8 +48,8 @@
 
       <!-- Correo -->
       <Group id="emailRow" translation="[0,150]">
-        <Rectangle id="emailFocus" translation="[-6,-6]" width="692" height="92" visible="false" />
-        <Rectangle id="emailField" width="680" height="80" />
+        <RoundedRect id="emailFocus" translation="[-6,-6]" width="692" height="92" visible="false" shape="card" />
+        <RoundedRect id="emailField" width="680" height="80" shape="card" />
         <Label id="emailLabel" translation="[24,12]" font="font:SmallestSystemFont" text="CORREO" />
         <Label id="emailValue" translation="[24,38]" font="font:MediumSystemFont"
                text="tu@email.com" />
@@ -56,8 +57,8 @@
 
       <!-- Contraseña -->
       <Group id="passwordRow" translation="[0,270]">
-        <Rectangle id="passwordFocus" translation="[-6,-6]" width="692" height="92" visible="false" />
-        <Rectangle id="passwordField" width="680" height="80" />
+        <RoundedRect id="passwordFocus" translation="[-6,-6]" width="692" height="92" visible="false" shape="card" />
+        <RoundedRect id="passwordField" width="680" height="80" shape="card" />
         <Label id="passwordLabel" translation="[24,12]" font="font:SmallestSystemFont"
                text="CONTRASEÑA" />
         <Label id="passwordValue" translation="[24,38]" font="font:MediumSystemFont" text="" />
@@ -65,8 +66,8 @@
 
       <!-- Ingresar -->
       <Group id="submitRow" translation="[0,390]">
-        <Rectangle id="submitFocus" translation="[-6,-6]" width="692" height="92" visible="false" />
-        <Rectangle id="submitButton" width="680" height="80" />
+        <RoundedRect id="submitFocus" translation="[-6,-6]" width="692" height="92" visible="false" shape="card" />
+        <RoundedRect id="submitButton" width="680" height="80" shape="card" />
         <Label id="submitLabel" width="680" height="80" horizAlign="center" vertAlign="center"
                font="font:MediumBoldSystemFont" text="Ingresar" />
       </Group>

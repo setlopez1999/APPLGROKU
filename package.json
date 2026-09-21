@@ -4,15 +4,14 @@
   "private": true,
   "description": "TV-Visor — canal Roku (BrightScript/SceneGraph)",
   "scripts": {
-    "build": "node scripts/build-isp.js",
-    "build:oneplay": "node scripts/build-isp.js oneplay",
-    "build:playcom": "node scripts/build-isp.js playcom",
-    "images:playcom": "node scripts/make-placeholder-images.js playcom",
+    "build": "node scripts/make-shapes.js && node scripts/build-isp.js",
+    "build:oneplay": "node scripts/make-shapes.js && node scripts/build-isp.js oneplay",
+    "build:playcom": "node scripts/make-shapes.js && node scripts/build-isp.js playcom",
+    "shapes": "node scripts/make-shapes.js",
+    "package": "npm run build:oneplay && bsc --project bsconfig.json",
     "deploy": "roku-deploy",
     "lint": "bsc --project bsconfig.json --create-package false --copy-to-staging false",
     "audit": "node scripts/audit-streams.js",
-    "images:oneplay": "node scripts/make-placeholder-images.js oneplay",
-    "package": "bsc --project bsconfig.json",
     "test": "node scripts/test.js"
   },
   "devDependencies": {

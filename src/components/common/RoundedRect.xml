@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Rectángulo con esquinas redondeadas. Sustituto de `Rectangle` para tarjetas, píldoras, botones y
+  marcos de foco.
+
+  Existe porque SceneGraph **no sabe redondear esquinas**: `Rectangle` solo hace ángulos rectos. Lo
+  resuelve un `Poster` con una imagen 9-patch (`scripts/make-shapes.js`), que estira solo la franja
+  central y conserva las esquinas a cualquier tamaño.
+
+  La imagen es BLANCA y se tiñe con `blendColor`, así que las dos texturas del proyecto (tarjeta y
+  píldora) cubren todos los colores. Un solo sitio donde cambiar la forma de toda la app.
+
+  Uso:
+      <RoundedRect id="fondo" width="360" height="72" color="0x161619FF" shape="pill" />
+-->
+<component name="RoundedRect" extends="Group">
+
+  <interface>
+    <field id="width" type="float" value="100" onChange="onGeometry" />
+    <field id="height" type="float" value="100" onChange="onGeometry" />
+    <!-- Color en formato SceneGraph 0xRRGGBBAA. Sale siempre de BrandConfig, nunca suelto. -->
+    <field id="color" type="string" value="0x161619FF" onChange="onColor" />
+    <!-- "card" (radio 24) o "pill" (radio 48) -->
+    <field id="shape" type="string" value="card" onChange="onShape" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/common/RoundedRect.brs" />
+
+  <children>
+    <Poster id="fondo" />
+  </children>
+
+</component>

@@ -1,7 +1,7 @@
 # TV-Visor Roku — Guía para Agentes
 
 > **Propósito**: cualquier agente (o desarrollador) que toque este repositorio lee este archivo primero.
-> **Última actualización**: 2026-09-17
+> **Última actualización**: 2026-09-21
 
 ## Qué es este proyecto
 
@@ -21,9 +21,11 @@ capas** y el **contrato con el backend**, no las clases del Kotlin.
 
 ## Estado actual
 
-**No hay código de negocio todavía.** Solo el esqueleto de carpetas, el `manifest` y esta
-documentación. Si vas a empezar a codear, tu primer paso es la sección "Metodología" de más abajo —
-no asumas que algo está hecho sin verificarlo en `src/`.
+**19 de 20 CU implementados**, con 393 tests en verde y la mayoría verificados en ejecución contra
+el backend de producción **y en un Roku Express real**. Bitácora detallada en `docs/PLAN.md` §10.
+
+Lo que queda: pulido visual, y cerrar el fleco del User-Agent `APPMOVIL` contra un ISP de Playcom
+(`plan_migracion.md` §8.5). No des nada por hecho sin verificarlo en `src/`.
 
 ## Jerarquía de fuentes de verdad (importante, en este orden)
 
@@ -60,8 +62,9 @@ CU de `app-lg`.
   la pieza está en la capa equivocada. Deploy: `roku-deploy`.
   (Rooibos queda como opción para tests *en dispositivo* más adelante; corre dentro del canal, no en
   el PC, así que no sustituye a esto.)
-- **Multi-ISP: un `brands/<isp>/brand.json` + script de build** que genera `manifest` y `BrandConfig`.
-  Roku no tiene product flavors; esto es el equivalente. Ver `docs/MULTI_ISP.md`.
+- **Multi-ISP: esquema ENV copiado del Kotlin.** `brands/<isp>/config.txt` (mismo formato y
+  mismas claves que el `ENV/config.txt` del rediseño) se copia a `ENV/` y el build genera desde ahí
+  el `manifest`, el `BrandConfig` y las imágenes. Ver `docs/MULTI_ISP.md`.
 
 ## Hallazgos heredados ya verificados (no re-investigar)
 
@@ -87,8 +90,9 @@ Específicos de Roku, confirmados al analizar el original:
 - **El control de Roku no tiene CH+/CH-.** El CU-11 del original tiene dos disparadores (flechas y
   botones físicos) con guards distintos; en Roku **solo existe el de flechas**. No inventar un
   sustituto sin decidirlo con el usuario.
-- **No hay bcrypt en Roku.** `roEVPDigest` da md5/sha1/sha256 y nada más. CU-14 (PIN parental)
-  **no se puede portar tal cual** — es la decisión abierta nº1 (ver `docs/plan_migracion.md` §8).
+- **No hay bcrypt en Roku.** `roEVPDigest` da md5/sha1/sha256 y nada más, así que el
+  `parentlockcode` del backend es inverificable. **Resuelto** con un PIN local del aparato
+  (`docs/plan_migracion.md` §8.1).
 
 ## Metodología de implementación
 
@@ -133,7 +137,8 @@ applg-roku/
 │   ├── images/                  assets de marca (se sustituyen por ISP)
 │   └── locale/
 ├── tests/                       Rooibos
-├── brands/<isp>/                brand.json + imágenes del cliente
+├── ENV/                         cliente ACTIVO (generado desde brands/, gitignored)
+├── brands/<isp>/                config.txt + imágenes de cada cliente
 ├── scripts/                     build por ISP, deploy
 └── docs/
 ```

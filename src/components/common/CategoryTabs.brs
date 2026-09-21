@@ -19,8 +19,9 @@ sub onCategoriesChanged()
     for i = 0 to categories.Count() - 1
         pill = CreateObject("roSGNode", "Group")
 
-        bg = pill.createChild("Rectangle")
+        bg = pill.createChild("RoundedRect")
         bg.id = "pillBg"
+        bg.shape = "pill"
         bg.height = 64
 
         label = pill.createChild("Label")

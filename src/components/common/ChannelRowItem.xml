@@ -17,8 +17,8 @@
   <script type="text/brightscript" uri="pkg:/components/common/ChannelRowItem.brs" />
 
   <children>
-    <Rectangle id="rowFocus" width="1792" height="112" visible="false" />
-    <Rectangle id="rowBg" translation="[3,3]" width="1786" height="106" />
+    <RoundedRect id="rowFocus" width="1792" height="112" visible="false" shape="card" />
+    <RoundedRect id="rowBg" translation="[3,3]" width="1786" height="106" shape="card" />
 
     <Poster id="logo" translation="[24,26]" width="90" height="60" />
     <Label id="number" translation="[130,44]" font="font:SmallSystemFont" />

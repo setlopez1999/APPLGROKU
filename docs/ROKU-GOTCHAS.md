@@ -428,3 +428,40 @@ que el vídeo no esté reproduciéndose**.
 Para saber si reproduce de verdad sin mirar el televisor: `videoNode.state = "playing"`. En este
 proyecto el heartbeat de CU-16 ya lo exige, así que **un heartbeat saliendo es prueba de que hay
 vídeo**.
+
+---
+
+## 26. El aviso de "textura más grande que la resolución" mira el ARCHIVO, no la carga
+
+**Verificado en un Roku Express (Roku OS 14.0.4) el 2026-09-21.** Al arrancar el canal, la consola
+suelta en cada ejecución:
+
+```
+[sg.scene.bitmap.big] Warning! Loaded texture (1920 x 1080) larger than the
+UI resolution (1280 x 720) - LoginScreen/Poster:bg pkg:/images/brand_login.png
+```
+
+Lo intuitivo es taparlo con `loadWidth`/`loadHeight` en el `Poster`. **No funciona**: se midió en el
+aparato con `GetUIResolution()` y `GetDisplaySize()` — las dos devuelven **1280×720** en el Express,
+así que los valores se estaban asignando bien — y el aviso sigue saliendo igual. El aviso compara el
+tamaño **intrínseco del archivo PNG** contra la resolución de la interfaz; el tamaño de carga no
+entra en esa cuenta.
+
+**La única forma de quitarlo es entregar el arte al tamaño en que se dibuja.** Es lo que Roku está
+pidiendo, literalmente.
+
+Consecuencia para este proyecto: `brands/<isp>/images/brand_login.png` y `brand_intro.png` son
+1920×1080 y hoy son placeholders de 7 KB, así que el coste real es despreciable. **Con el arte
+definitivo deja de serlo**: un fondo fotográfico a 1920×1080 son 8,3 MB de textura descomprimida
+(1920·1080·4) frente a 3,7 MB a 720p, en un aparato de gama baja donde la memoria es el recurso
+escaso. Decidir la estrategia de assets **antes** de pedirle el arte a los ISP, no después.
+
+`loadWidth`/`loadHeight` se dejaron puestos en `LoginScreen.brs`: son práctica estándar y no cuestan
+nada, pero **no se pudo medir cuánta memoria ahorran** — el comando `r2d2_bitmaps` de la consola de
+depuración ya no responde en Roku OS 14.
+
+### De paso: `brand_intro.png` viaja en cada paquete sin que nadie lo use
+
+`BrandConfig` declara `introUri` y `build-isp.js` copia el archivo, pero **ningún componente lo
+referencia**: `IntroScreen` está en la arquitectura de `PLAN.md` §2 y nunca se construyó. Hoy son
+7 KB de placeholder; con arte real es un archivo grande en cada build para nada.

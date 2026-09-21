@@ -19,7 +19,8 @@ sub init()
     for each texto in m.labels
         fila = CreateObject("roSGNode", "Group")
 
-        fondo = fila.createChild("Rectangle")
+        fondo = fila.createChild("RoundedRect")
+        fondo.shape = "pill"
         fondo.width = 648
         fondo.height = 72
 

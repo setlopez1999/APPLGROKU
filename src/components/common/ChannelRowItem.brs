@@ -67,15 +67,17 @@ end function
 function buildCell(cell as object, ancho as integer) as object
     group = CreateObject("roSGNode", "Group")
 
-    marco = group.createChild("Rectangle")
+    marco = group.createChild("RoundedRect")
     marco.id = "cellFocus"
+    marco.shape = "card"
     marco.translation = [-4, -4]
     marco.width = ancho + 8
     marco.height = 96
     marco.color = m.brand.focusOutline
     marco.visible = false
 
-    bg = group.createChild("Rectangle")
+    bg = group.createChild("RoundedRect")
+    bg.shape = "card"
     bg.width = ancho
     bg.height = 88
 

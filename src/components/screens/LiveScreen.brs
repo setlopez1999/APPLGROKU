@@ -348,6 +348,7 @@ sub refreshGrid()
     if m.currentChannel <> invalid then m.grid.currentCnId = m.currentChannel.cnId
     m.grid.epgWindow = m.epgWindow
     m.grid.channels = m.filtered
+    m.top.epgWindow = m.epgWindow
 end sub
 
 sub refreshInfo()
@@ -422,6 +423,15 @@ end sub
 
 ' Vuelta de pantalla completa: el usuario puede haber zapeado. Se actualiza la info y la parrilla
 ' SIN volver a arrancar el vídeo, que ya está sonando con ese canal.
+' Lo piden Mi lista y Buscar al elegir un canal.
+sub onPlayRequested()
+    canal = tvFindChannelByCnId(m.channels, m.top.playCnId)
+    if canal = invalid then return
+    m.currentChannel = canal
+    playCurrent()
+    refreshGrid()
+end sub
+
 sub onSyncChannel()
     channel = tvFindChannelByCnId(m.channels, m.top.syncCnId)
     if channel = invalid then return

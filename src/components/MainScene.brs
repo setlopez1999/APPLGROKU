@@ -41,6 +41,17 @@ sub init()
     m.pinModal = m.top.findNode("pinModal")
     m.pinModal.observeField("action", "onPinAction")
 
+    showIntro()
+end sub
+
+' Flujo igual que el rediseno Kotlin: Intro -> Login -> Main (docs/DISENO.md 2.1).
+sub showIntro()
+    intro = CreateObject("roSGNode", "IntroScreen")
+    intro.observeField("done", "onIntroDone")
+    replaceStack(intro)
+end sub
+
+sub onIntroDone()
     showLogin()
 end sub
 

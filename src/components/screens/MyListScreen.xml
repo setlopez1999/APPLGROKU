@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  CU-09 — "Mi lista": los canales marcados como favoritos.
+
+  Reutiliza `ChannelGrid` en vez de duplicar una lista propia: es el mismo objeto con otros datos,
+  así el foco, el desplazamiento y el estilo se comportan igual que en "TV en directo" y solo hay
+  un sitio donde arreglarlos.
+-->
+<component name="MyListScreen" extends="Group">
+
+  <interface>
+    <field id="channels" type="array" onChange="onChannels" />
+    <field id="epgWindow" type="assocarray" onChange="onChannels" />
+    <field id="currentCnId" type="integer" value="0" />
+    <field id="chosenCnId" type="integer" alwaysNotify="true" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/screens/MyListScreen.brs" />
+
+  <children>
+    <Rectangle id="bg" width="1920" height="1080" />
+    <Label id="titulo" translation="[64,120]" font="font:LargeBoldSystemFont" text="Mi lista" />
+    <Label id="vacio" translation="[64,220]" width="1200" font="font:MediumSystemFont"
+           text="Todavía no has añadido ningún canal. Marca uno con el botón Mi lista." />
+    <ChannelGrid id="grid" translation="[64,240]" />
+  </children>
+
+</component>

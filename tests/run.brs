@@ -27,6 +27,7 @@ sub main()
     testPlayback()
     testTabs()
     testParentalPin()
+    testSearch()
     testEpgGrid()
 
     code = tvTestExitCode()

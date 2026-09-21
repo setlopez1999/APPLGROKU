@@ -31,6 +31,10 @@
     <!-- Grabacion a reproducir a pantalla completa: { url, titulo, cnId } -->
     <field id="requestCatchup" type="assocarray" alwaysNotify="true" />
     <field id="adultUnlocked" type="boolean" value="false" onChange="onAdultUnlocked" />
+    <!-- Ventana de celdas ya construida, para que Mi lista y Buscar la reutilicen sin recalcular -->
+    <field id="epgWindow" type="assocarray" />
+    <!-- Reproducir este canal (lo piden Mi lista y Buscar) -->
+    <field id="playCnId" type="integer" value="0" onChange="onPlayRequested" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/LiveScreen.brs" />

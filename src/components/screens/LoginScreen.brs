@@ -9,15 +9,34 @@ sub init()
     m.brand = m.global.brand
 
     ' --- marca y fondo ---
-    m.top.findNode("bg").uri = m.brand.loginUri
+    ' loadWidth/loadHeight limitan el tamano al que se retiene la textura del fondo, que se dibuja
+    ' a pantalla completa. Van ANTES de uri: despues, la textura ya se esta cargando.
+    '
+    ' OJO, verificado en un Roku Express (ROKU-GOTCHAS §26): esto NO silencia el aviso
+    ' "Loaded texture (1920x1080) larger than the UI resolution (1280x720)". El aviso mira el
+    ' tamano intrinseco del ARCHIVO, no el de carga, y la unica forma de quitarlo es entregar el
+    ' arte al tamano en que se dibuja. Se deja puesto porque es la practica estandar y no cuesta
+    ' nada, pero no se pudo medir cuanta memoria ahorra: r2d2_bitmaps ya no existe en Roku OS 14.
+    bg = m.top.findNode("bg")
+    uiRes = CreateObject("roDeviceInfo").GetUIResolution()
+    bg.loadWidth = uiRes.width
+    bg.loadHeight = uiRes.height
+    bg.uri = m.brand.loginUri
     m.top.findNode("scrim").color = "0x000000B3"      ' oscurece el fondo para que el texto se lea
+
+    ' El nombre en texto es el FALLBACK del logo, no un anadido: el logo del ISP ya lleva su nombre
+    ' dentro, asi que repetirlo debajo sobra. Misma regla que el rediseno Kotlin
+    ' (BrandConfig.logoResId: "Null = fallback a texto (appName) con estilo de marca").
+    hayLogo = (m.brand.logoUri <> "")
 
     logo = m.top.findNode("logo")
     logo.uri = m.brand.logoUri
+    logo.visible = hayLogo
 
     brandName = m.top.findNode("brandName")
-    brandName.text = m.brand.appName + " " + m.brand.appBadge
+    brandName.text = tvBrandText(m.brand)
     brandName.color = m.brand.textPrimary
+    brandName.visible = not hayLogo
     m.top.findNode("brandTagline").color = m.brand.textSecondary
 
     ' --- tarjeta del formulario ---

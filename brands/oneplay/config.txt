@@ -1,0 +1,50 @@
+# ============================================================================
+#  CONFIG DEL CLIENTE (marca).  ← EDITÁ ESTO Y PONÉ LAS IMÁGENES EN ESTA CARPETA.
+#  Mismo formato y mismas claves que el ENV/config.txt del proyecto Kotlin.
+#  Al construir (npm run build:oneplay) se aplica TODO automáticamente al canal.
+# ============================================================================
+
+# Nombre de la app (canal + dentro de la app, junto al logo).
+appname=Oneplay
+
+# Badge corto junto al logo (país/edición). Vacío = no se muestra.
+badge=PE
+
+# Versión mostrada (perfil) y versión del canal.
+version=1.0.1
+
+# COLOR de marca — un solo hex; el resto de acentos se derivan de este.
+accent=#00BB5F
+
+# Subdominio / URL del backend del ISP.
+baseUrl=https://oneplay.iptvperu.tv/
+
+# Color del splash al abrir el canal.
+splashColor=#0B0B0D
+
+# Pestañas (switch maestro por cliente). false = NUNCA se dibuja. true = se dibuja según lo que
+# mande el backend (con datos = funcional; apagada = gris; ausente = no se dibuja).
+# Home queda deprecado por ahora (arranca en TV en directo); ponlo true para reactivarlo.
+tabHome=false
+tabEvents=false
+tabContent=false
+
+# Notificaciones. URL propia del servicio (distinta del baseUrl).
+# Si notificationsEnabled=false, la app ni consulta.
+notificationsEnabled=false
+notificationsUrl=http://135.148.7.47:24080/
+
+# Catch-up: marca si el ISP es cliente catch-up. true = la app SONDEA el DVR de los canales
+# marcados y dibuja el ▶ solo en los que graban de verdad (el flag del backend miente).
+isCatchupClient=true
+
+# ============================================================================
+#  IMÁGENES  → poné estos archivos EN ESTA MISMA CARPETA.
+#  Las que falten se rellenan con un placeholder liso, salvo el logo:
+#  si no hay logo, la app muestra el NOMBRE en texto con estilo de marca.
+# ----------------------------------------------------------------------------
+#  logo.png   →  Logo interno (navbar/login). TRANSPARENTE, horizontal.  ~1900x600
+#  icon.png   →  Icono del canal en Roku.     Horizontal.                336x210
+#  intro.png  →  Fondo del intro.             16:9.                      1280x720
+#  login.png  →  Fondo del login.             16:9.                      1280x720
+# ============================================================================

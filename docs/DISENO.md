@@ -43,7 +43,7 @@ Réplica exacta de `ui/theme/BrandConfig.kt`. **Un solo archivo**, generado por 
 
 | Token | Valor | Uso |
 |---|---|---|
-| `accent` | de `brand.json` | Botones activos, progreso, acentos |
+| `accent` | de `ENV/config.txt` | Botones activos, progreso, acentos |
 | `accentSoft` | `accent` al 20 % de opacidad | **Derivado**, no se define aparte |
 
 ### Neutros (fijos, NO cambian por cliente)
@@ -65,6 +65,24 @@ Réplica exacta de `ui/theme/BrandConfig.kt`. **Un solo archivo**, generado por 
 |---|---|---|
 | `focusOutline` | **blanco puro**, fijo | Deliberadamente **no** usa el color de marca: el foco se ve igual en toda la app, estilo Netflix/YouTube |
 | `focusBorderWidth` | 6 px | Grueso para que se note en TV |
+
+### Formas redondeadas
+
+SceneGraph **no sabe dibujar esquinas redondeadas**: `Rectangle` solo hace ángulos rectos. Se
+resuelve con el componente `RoundedRect`, un `Poster` sobre una imagen **9-patch** que estira solo
+la franja central y conserva las esquinas a cualquier tamaño.
+
+Las texturas se generan en BLANCO (`npm run shapes`) y se tiñen con `blendColor`, así que **dos
+imágenes diminutas cubren todos los colores de la app** — 922 bytes la píldora. En un Roku Express,
+donde la memoria de texturas escasea, eso evita una textura por cada combinación color×radio.
+
+| Forma | Radio | Se usa en |
+|---|---|---|
+| `card` | 24 px | Tarjetas, campos, filas de la parrilla, celdas, paneles |
+| `pill` | 48 px | Píldoras de categoría, botones, filas del menú de cuenta |
+
+Siguen siendo `Rectangle` los velos a pantalla completa, las bandas de degradado y las barras de
+progreso: redondear algo de 4 px de alto no se ve, y un velo de 1920×1080 no tiene esquinas visibles.
 
 ### Controles "glass"
 
@@ -196,7 +214,7 @@ Regla copiada de `TabsResolver.kt`, se replica tal cual:
 
 | Asset | Origen | Nota |
 |---|---|---|
-| Logo interno | `brands/<isp>/images/brand_logo.png` | Si falta, fallback a texto con el nombre |
+| Logo interno | `ENV/logo.png` | **Si falta, NO se dibuja un rectángulo de color**: la app cae al nombre en texto con estilo de marca, igual que el rediseño Kotlin. El logo del ISP ya lleva su nombre dentro, así que cuando hay logo el texto NO se repite |
 | Fondo de intro | `brand_intro` | Pantalla completa |
 | Fondo de login | `brand_login` | Pantalla completa |
 | Iconos y splash del canal | ver `MULTI_ISP.md` | Los pide el `manifest`, con tamaños fijos de Roku |

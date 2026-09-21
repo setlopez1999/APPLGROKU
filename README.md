@@ -44,7 +44,7 @@ npm run build:playcom && npm run package
 ```
 
 ISPs registrados: `oneplay` (no exige el User-Agent APPMOVIL) y `playcom` (**sí lo exige**: devuelve
-403 sin él). Añadir uno nuevo: copiar la carpeta y rellenar `brand.json` — ver `docs/MULTI_ISP.md`.
+403 sin él). Añadir uno nuevo: copiar la carpeta y rellenar `config.txt` — ver `docs/MULTI_ISP.md`.
 
 ## Generar el paquete para probar en un Roku
 
@@ -71,7 +71,7 @@ Para ver los errores mientras corre: `telnet <ip-del-roku> 8085` desde otra term
 
 ### Qué se verá
 
-La pantalla de login del ISP configurado en `brands/<isp>/brand.json`. Para pasar de ahí hace falta
+La pantalla de login del ISP configurado en `brands/<isp>/config.txt`. Para pasar de ahí hace falta
 una **cuenta real de ese ISP**. Las imágenes son placeholders de color sólido
 (`npm run images:oneplay`) hasta que llegue el arte definitivo.
 

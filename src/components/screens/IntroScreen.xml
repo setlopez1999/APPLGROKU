@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Intro de marca. El rediseño Kotlin arranca aquí antes del login (docs/DISENO.md §2.1), y se
+  replica para que el flujo sea el mismo en las dos plataformas.
+
+  Se va sola a los 2 s, o antes con cualquier tecla: una intro que no se puede saltar es una intro
+  que molesta a partir de la segunda vez.
+-->
+<component name="IntroScreen" extends="Group">
+
+  <interface>
+    <field id="done" type="boolean" alwaysNotify="true" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/screens/IntroScreen.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Tabs.brs" />
+
+  <children>
+    <Poster id="bg" width="1920" height="1080" />
+    <Rectangle id="scrim" width="1920" height="1080" />
+    <Poster id="logo" translation="[660,440]" width="600" height="200" />
+    <Label id="nombre" translation="[660,470]" width="600" horizAlign="center"
+           font="font:LargeBoldSystemFont" />
+    <Timer id="salir" duration="2" repeat="false" />
+  </children>
+
+</component>

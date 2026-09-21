@@ -12,7 +12,7 @@
 
 | Paso en Kotlin (product flavor) | Equivalente en Roku |
 |---|---|
-| `buildConfigField("BASE_URL", …)` | clave en `brands/<isp>/brand.json` → `BrandConfig.brs` generado |
+| `buildConfigField("BASE_URL", …)` | clave en `ENV/config.txt` → `BrandConfig.brs` generado |
 | `applicationId = "tv.cdlatam.<isp>"` | **no existe**: cada ISP es un **canal distinto** en el Developer Dashboard |
 | `resValue("string", "app_name", …)` | `title=` del `manifest` (generado) |
 | `src/<isp>/res/drawable/banner.png` | `brands/<isp>/images/` → copiado a `src/images/` |
@@ -26,11 +26,14 @@ La diferencia grande: en Gradle un solo proyecto produce N APKs con distinto `ap
 
 ## 2. Todo lo personalizable por ISP
 
-### `brands/<isp>/brand.json`
+### `brands/<isp>/config.txt`
+
+**Mismo archivo, mismo formato y mismas claves que el `ENV/config.txt` del proyecto Kotlin**, a
+propósito: quien sepa configurar un cliente allí sabe hacerlo aquí sin aprender nada nuevo.
 
 | Clave | Tipo | Rol |
 |---|---|---|
-| `name` | String | Nombre mostrado y `title` del `manifest` |
+| `appname` | String | Nombre mostrado y `title` del `manifest` |
 | `badge` | String | Badge corto junto al logo (país/edición). Vacío = no se dibuja |
 | `version` | String | `major/minor/build` del `manifest` y versión mostrada en el perfil |
 | `baseUrl` | String | URL base del backend |
@@ -38,23 +41,32 @@ La diferencia grande: en Gradle un solo proyecto produce N APKs con distinto `ap
 | `notificationsEnabled` | Boolean | Feature flag |
 | `isCatchupClient` | Boolean | El ISP es cliente de catch-up |
 | `accent` | String hex | **Único** color de marca; sus variantes se derivan |
-| `tabs.home` / `tabs.events` / `tabs.content` | Boolean | Switches maestros de pestañas (§4 de `DISENO.md`) |
+| `tabHome` / `tabEvents` / `tabContent` | Boolean | Switches maestros de pestañas (§4 de `DISENO.md`) |
 | `splashColor` | String hex | Color del splash del canal |
 
 `platform` **no** está aquí: es siempre **12** (Roku) y vive en el código.
 
-### `brands/<isp>/images/`
+### Imágenes, en la misma carpeta
+
+Mismos nombres que el `ENV/` del Kotlin. Las que falten se rellenan con un placeholder liso, **salvo
+el logo**: sin logo la app usa el nombre en texto, nunca un rectángulo de color.
 
 | Imagen | Tamaño | Para qué |
 |---|---|---|
-| `icon_focus_hd.png` | 336×210 | Icono del canal en la parrilla de Roku (HD) |
-| `icon_focus_sd.png` | 248×140 | Icono (SD) |
-| `splash_fhd.png` | 1920×1080 | Splash al abrir |
-| `splash_hd.png` | 1280×720 | Splash (HD) |
-| `splash_sd.png` | 720×480 | Splash (SD) |
-| `brand_logo.png` | según diseño | Logo interno (navbar y login) |
-| `brand_intro.png` | 1920×1080 | Fondo de la pantalla de intro |
-| `brand_login.png` | 1920×1080 | Fondo del login |
+| `logo.png` | ~1900×600, transparente | Logo interno (navbar, login, intro) |
+| `icon.png` | 336×210 | Icono del canal en Roku |
+| `intro.png` | 1280×720 | Fondo del intro |
+| `login.png` | 1280×720 | Fondo del login |
+
+### Cómo se aplica
+
+```
+brands/<isp>/  ──copia──>  ENV/  ──build-isp.js──>  manifest + BrandConfig.brs + src/images/
+```
+
+`ENV/` es el **cliente activo** (gitignored, igual que en el Kotlin es local). `brands/` es el
+catálogo en git. Esa es la única diferencia con el Kotlin, y existe para poder alternar entre ISPs
+sin perder la configuración del otro.
 
 > Los tamaños de icono y splash son los que pide Roku. **Verificar contra la documentación oficial
 > al generar el primer paquete** — si alguno no cuadra, la certificación lo rechaza.
@@ -78,8 +90,8 @@ probar conviene tenerlo en cuenta.
 ## 3. Paso a paso: añadir un ISP
 
 1. **Copiar** `brands/<isp-existente>/` y renombrarla al ISP nuevo.
-2. **Rellenar** `brand.json` con los valores de la tabla §2.
-3. **Reemplazar** las imágenes de `brands/<isp>/images/` (todas, con los tamaños exactos).
+2. **Rellenar** `config.txt` con los valores de la tabla §2.
+3. **Reemplazar** las imágenes de `brands/<isp>/` (logo, icon, intro, login).
 4. **Generar**: `npm run build:<isp>` → escribe `manifest`, `src/source/config/BrandConfig.brs` y
    copia las imágenes a `src/images/`.
 5. **Sideload** en un Roku de pruebas (`npx roku-deploy`) y verificar: login real, foco con el D-pad,
@@ -121,8 +133,8 @@ con los keystores de Android.
 
 ## 6. Checklist antes de entregar un ISP
 
-- [ ] `brand.json` completo (backend, notificaciones, catch-up, acento, pestañas)
-- [ ] Las 8 imágenes, con los tamaños exactos
+- [ ] `config.txt` completo (backend, notificaciones, catch-up, acento, pestañas)
+- [ ] Las imágenes del cliente (logo, icon, intro, login) con sus tamaños
 - [ ] `npm run build:<isp>` genera `manifest` + `BrandConfig` sin avisos
 - [ ] Sideload en Roku real: login con cuenta del ISP, reproducción y catch-up verificados
 - [ ] Recorrido completo del foco con el D-pad, sin elementos inalcanzables

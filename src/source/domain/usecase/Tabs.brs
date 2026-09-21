@@ -72,3 +72,12 @@ function tvContentAvailabilityFromUserInfo(userInfo as object) as string
     if userInfo.enabledVod then return "data"
     return "off"
 end function
+
+' Nombre de marca para mostrar: "Oneplay PE" o solo "Oneplay" si no hay badge. Se usa cuando el ISP
+' NO entrego logo, como fallback en texto (docs/DISENO.md 5).
+function tvBrandText(brand as object) as string
+    if brand = invalid then return ""
+    nombre = brand.appName
+    if brand.appBadge <> "" then return nombre + " " + brand.appBadge
+    return nombre
+end function
