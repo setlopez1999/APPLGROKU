@@ -24,6 +24,8 @@
     <field id="currentCnId" type="integer" value="0" />
     <!-- Al volver de pantalla completa: puede haberse zapeado, hay que resincronizar SIN recargar -->
     <field id="syncCnId" type="integer" value="0" onChange="onSyncChannel" />
+    <!-- La revalidacion detecto un cambio real en el catalogo -->
+    <field id="catalogVersion" type="integer" value="0" onChange="onCatalogVersion" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/LiveScreen.brs" />
@@ -39,6 +41,7 @@
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/EpgGrid.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Catchup.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/FlattenCatalog.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/CatalogRefresh.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Playback.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Zapping.brs" />
   <script type="text/brightscript" uri="pkg:/source/data/remote/ApiRoutes.brs" />

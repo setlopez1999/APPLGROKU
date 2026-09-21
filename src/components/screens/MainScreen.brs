@@ -62,6 +62,10 @@ sub onProfileAction()
     closeProfileMenu()
 end sub
 
+sub onCatalogVersion()
+    m.live.catalogVersion = m.top.catalogVersion
+end sub
+
 sub onResume()
     m.live.syncCnId = m.top.resumeCnId
     m.live.setFocus(true)

@@ -24,6 +24,12 @@ sub init()
 
     m.stack = []
 
+    m.heartbeatTimer = m.top.findNode("heartbeatTimer")
+    m.heartbeatTimer.observeField("fire", "onHeartbeat")
+    m.revalidateTimer = m.top.findNode("revalidateTimer")
+    m.revalidateTimer.observeField("fire", "onRevalidate")
+    m.catalogSignature = ""
+
     showLogin()
 end sub
 
@@ -92,9 +98,20 @@ sub onLoginSuccess()
     main.observeField("fullscreenCnId", "onRequestFullscreen")
     m.mainScreen = main
     replaceStack(main)
+
+    m.catalogSignature = tvCatalogSignature(catalog.channels)
+    m.heartbeatTimer.control = "start"
+    m.revalidateTimer.control = "start"
 end sub
 
 sub onLogout()
+    ' En Roku NO hay cancelacion automatica: si no se paran a mano, los temporizadores
+    ' seguirian pidiendo con un token muerto. Es el equivalente de los intervals apilados
+    ' del original (CU-19).
+    m.heartbeatTimer.control = "stop"
+    m.revalidateTimer.control = "stop"
+    m.catalogSignature = ""
+
     ' Detener, no pausar: pausar deja el decodificador reservado (BACKEND-GOTCHAS §9).
     m.videoPlayer.control = "stop"
     m.videoPlayer.visible = false
@@ -129,6 +146,74 @@ sub syncAfterFullscreen()
     cnId = m.fullscreenPlayer.currentCnId
     m.fullscreenPlayer = invalid
     if cnId > 0 then m.mainScreen.resumeCnId = cnId
+end sub
+
+' ---- CU-16: heartbeat al dashboard (cada 15 s) -------------------------------
+'
+' Fire-and-forget, igual que el original: sin callback y sin manejo de error.
+
+sub onHeartbeat()
+    userInfo = m.global.session
+    if not tvHasSession(userInfo) then return
+
+    cnId = m.global.currentCnId
+    channel = tvFindChannelByCnId(m.global.channels, cnId)
+    reproduciendo = (m.videoPlayer.state = "playing")
+
+    if not tvShouldSendHeartbeat(reproduciendo, m.global.isOnline, false, channel, userInfo.token) then return
+
+    m.heartbeatTask = CreateObject("roSGNode", "ApiTask")
+    m.heartbeatTask.request = tvApiRequest(tvApiDashboardUrl(m.brand.baseUrl, userInfo.token, cnId), "GET")
+    m.heartbeatTask.control = "RUN"
+end sub
+
+' ---- CU-17: revalidacion de sesion (cada 60 s) --------------------------------
+
+sub onRevalidate()
+    userInfo = m.global.session
+    if not tvHasSession(userInfo) then return
+
+    ' El backend exige el password EN CLARO en cada get-web2, no solo en el login
+    ' (docs/BACKEND-GOTCHAS.md 11). Por eso se guarda cifrado toda la sesion.
+    password = tvSessionPassword()
+    if password = "" then return
+
+    url = tvApiGetWeb2Url(m.brand.baseUrl, userInfo.userEmail, password, tvSessionDeviceId(), m.brand.platform, userInfo.token)
+
+    m.revalidateTask = CreateObject("roSGNode", "ApiTask")
+    m.revalidateTask.observeField("response", "onRevalidateResponse")
+    m.revalidateTask.request = tvApiRequest(url)
+    m.revalidateTask.control = "RUN"
+end sub
+
+sub onRevalidateResponse()
+    response = m.revalidateTask.response
+
+    ' Un fallo de red NO cierra la sesion: el backend tiene hipos, y echar al usuario por uno seria
+    ' peor que esperar al siguiente ciclo.
+    if not response.ok then return
+    if response.json = invalid then return
+
+    ' Esto si: el backend dice que el token ya no vale.
+    if ResponseHasError(response.json)
+        print "[TV] revalidacion: sesion rechazada, cerrando"
+        onLogout()
+        return
+    end if
+
+    m.global.session = UserInfoFromJson(response.json)
+    catalog = tvFlattenCatalog(response.json)
+
+    ' RECONSTRUIR SOLO SI ALGO CAMBIO DE VERDAD (docs/BACKEND-GOTCHAS.md 6): redibujar el catalogo
+    ' cada 60 s interrumpiria la reproduccion y moveria el foco mientras el usuario navega.
+    if not tvCatalogChanged(m.catalogSignature, catalog.channels) then return
+
+    print "[TV] revalidacion: el catalogo cambio ("; catalog.channels.Count(); " canales)"
+    m.catalogSignature = tvCatalogSignature(catalog.channels)
+    m.global.channels = catalog.channels
+    m.global.sections = catalog.sections
+
+    if m.mainScreen <> invalid then m.mainScreen.catalogVersion = m.mainScreen.catalogVersion + 1
 end sub
 
 ' ---- botón Atrás -------------------------------------------------------------

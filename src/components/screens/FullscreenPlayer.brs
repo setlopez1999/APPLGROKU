@@ -99,6 +99,7 @@ sub tune(channel as object)
     m.status.text = ""
     m.current = channel
     m.top.currentCnId = channel.cnId
+    m.global.currentCnId = channel.cnId
 
     video = m.top.videoNode
     if video <> invalid

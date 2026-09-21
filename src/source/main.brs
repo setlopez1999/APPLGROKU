@@ -30,6 +30,9 @@ sub Main()
         sections: []
         favoriteIds: []
 
+        ' Canal en emisión, para el heartbeat del dashboard (CU-16)
+        currentCnId: 0
+
         ' --- Guía (CU-10) ---
         epg: {}
 

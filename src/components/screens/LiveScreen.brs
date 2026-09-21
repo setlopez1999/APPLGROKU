@@ -149,6 +149,56 @@ sub onGuideResponse()
     refreshInfo()
 end sub
 
+' El catalogo cambio de verdad (la revalidacion ya lo ha comprobado). Se repintan categorias y
+' parrilla, y se decide que hacer con lo que esta sonando SIN cortarlo si no hace falta.
+sub onCatalogVersion()
+    m.channels = m.global.channels
+    m.sections = m.global.sections
+    if m.channels = invalid then m.channels = []
+    if m.sections = invalid then m.sections = []
+
+    nombres = ["Todos"]
+    for each section in m.sections
+        nombres.Push(section.nombre)
+    end for
+    m.tabs.categories = nombres
+    m.filtered = m.channels
+    m.tabs.selectedIndex = 0
+
+    urlActual = ""
+    if m.currentChannel <> invalid then urlActual = m.currentChannel.streamUrl
+
+    decision = tvResolveAfterRefresh(m.currentChannel, urlActual, m.channels, m.sections, premiumsActuales())
+    print "[TV] tras revalidar: "; decision.action
+
+    if decision.action = "keep"
+        m.currentChannel = decision.channel
+        refreshGrid()
+        refreshInfo()
+        refreshFavoriteState()
+        return
+    end if
+
+    if decision.action = "none" then return
+
+    ' "reload" (la url cambio), "switch" (el canal ya no existe) o "blocked" (se perdio el premium)
+    if decision.action = "blocked"
+        m.status.text = "Este canal ya no esta incluido en tu plan"
+    end if
+
+    if decision.channel <> invalid
+        m.currentChannel = decision.channel
+        playCurrent()
+    end if
+    refreshGrid()
+end sub
+
+function premiumsActuales() as object
+    userInfo = m.global.session
+    if not tvHasSession(userInfo) then return []
+    return userInfo.premiumsAllowed
+end function
+
 ' ---- favoritos (CU-08 / CU-09) -----------------------------------------------
 
 sub fetchFavorites()
@@ -253,6 +303,7 @@ sub playCurrent()
     video.visible = true
 
     m.top.currentCnId = m.currentChannel.cnId
+    m.global.currentCnId = m.currentChannel.cnId
     refreshInfo()
     refreshFavoriteState()
 end sub

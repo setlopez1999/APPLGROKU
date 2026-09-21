@@ -23,6 +23,11 @@
   <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/FlattenCatalog.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/SessionRules.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
+  <script type="text/brightscript" uri="pkg:/source/data/remote/ApiRoutes.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelAccess.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/CatalogRefresh.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Playback.brs" />
   <script type="text/brightscript" uri="pkg:/source/data/local/Session.brs" />
 
   <children>
@@ -35,6 +40,12 @@
 
     <Group id="screenStack" />
     <Group id="modalLayer" />
+
+    <!-- Procesos de sesión (docs/arquitectura_flujo.md §2). En Roku NO hay cancelación automática:
+         se arrancan al entrar y se paran a mano en el logout, o seguirían pidiendo con un token
+         muerto — el equivalente de los intervals apilados del original. -->
+    <Timer id="heartbeatTimer" duration="15" repeat="true" />
+    <Timer id="revalidateTimer" duration="60" repeat="true" />
   </children>
 
 </component>
