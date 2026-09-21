@@ -292,3 +292,48 @@ Al añadir un token al diseño, añadirlo también a `scripts/build-isp.js`.
 **Aviso de JavaScript, no de Roku**: `build-isp.js` genera el BrandConfig con un template literal,
 así que **un backtick dentro de un comentario BrightScript rompe el generador**. No usar backticks
 en el texto que se genera.
+
+---
+
+## 21. El foco en contenedores y listas — dos trampas juntas
+
+**Verificado en el simulador el 2026-09-21.** Costó tres intentos y son el corazón de la navegación.
+
+### a) Un `Group` que recibe el foco SE LO QUEDA
+
+Dar foco a un contenedor no se lo pasa a su hijo activo. `MainScene` se lo daba a `MainScreen`, y
+las teclas **no llegaban nunca** a `LiveScreen`. Hay que delegar explícitamente:
+
+```brightscript
+sub init()
+    ...
+    m.top.observeField("focusedChild", "onFocusReceived")
+end sub
+
+sub onFocusReceived()
+    if m.top.hasFocus() then applyZone()   ' reparte el foco al hijo que toca
+end sub
+```
+
+### b) Un `MarkupList` con el foco se queda TODAS las flechas verticales
+
+Ni siquiera las propaga estando en la primera fila, así que el foco **no puede salir de la lista** y
+el usuario queda atrapado — el mismo fallo que documentaron en el port a tvOS. Con
+`vertFocusAnimationStyle="fixedFocusWrap"` es peor todavía, porque da la vuelta al final.
+
+La solución que sí funciona igual en el simulador y en el aparato: **el foco lo tiene el `Group`
+contenedor, no la lista.** La lista se desplaza con `jumpToItem` y en los bordes se devuelve
+`false` para que la tecla suba:
+
+```brightscript
+if key = "up"
+    if m.focusIndex <= 0 then return false   ' borde: la tecla sale hacia arriba
+    m.focusIndex = m.focusIndex - 1
+    m.list.jumpToItem = m.focusIndex
+    return true
+end if
+```
+
+Consecuencia: como la lista no tiene el foco, su `focusPercent` siempre vale 0 y **no sirve para
+pintar el marco de selección**. Se pinta desde un campo propio del `ContentNode` de cada fila
+(`isSelected`), que el item observa.

@@ -20,11 +20,16 @@
     <!-- El nodo Video es ÚNICO en la app y lo presta MainScene (arquitectura_flujo.md §1) -->
     <field id="videoNode" type="node" onChange="onVideoNodeReady" />
     <field id="requestFullscreen" type="boolean" alwaysNotify="true" />
+    <!-- Canal que se está viendo, para que el reproductor a pantalla completa arranque en él -->
+    <field id="currentCnId" type="integer" value="0" />
+    <!-- Al volver de pantalla completa: puede haberse zapeado, hay que resincronizar SIN recargar -->
+    <field id="syncCnId" type="integer" value="0" onChange="onSyncChannel" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/LiveScreen.brs" />
   <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
   <script type="text/brightscript" uri="pkg:/source/util/Time.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Device.brs" />
   <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelAccess.brs" />

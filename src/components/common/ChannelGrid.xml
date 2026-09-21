@@ -33,12 +33,16 @@
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/EpgGrid.brs" />
 
   <children>
+    <!-- fixedFocus y NO "Wrap": con "fixedFocusWrap" la lista se traga el "arriba" en la primera
+         fila (da la vuelta al final) y el foco no puede salir hacia las categorías. Además, que la
+         lista de canales no dé la vuelta coincide con el original (docs/DISENO.md §3).
+         Verificado en el simulador el 2026-09-21. -->
     <MarkupList id="list"
                 itemComponentName="ChannelRowItem"
                 itemSize="[1792,112]"
                 itemSpacing="[0,10]"
                 numRows="4"
-                vertFocusAnimationStyle="fixedFocusWrap"
+                vertFocusAnimationStyle="fixedFocus"
                 drawFocusFeedback="false" />
   </children>
 

@@ -11,6 +11,10 @@
     <field id="logout" type="boolean" alwaysNotify="true" />
     <!-- El nodo Video se presta desde MainScene y se pasa a LiveScreen -->
     <field id="videoNode" type="node" onChange="onVideoNodeChanged" />
+    <!-- cn_id con el que abrir el reproductor a pantalla completa; lo consume MainScene -->
+    <field id="fullscreenCnId" type="integer" alwaysNotify="true" />
+    <!-- cn_id en el que quedó el zapping al volver -->
+    <field id="resumeCnId" type="integer" value="0" onChange="onResume" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/MainScreen.brs" />

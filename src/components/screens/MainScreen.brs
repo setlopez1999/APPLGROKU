@@ -9,6 +9,7 @@ sub init()
     m.live = m.top.findNode("live")
     m.navBar = m.top.findNode("navBar")
     m.navBar.observeField("action", "onNavAction")
+    m.live.observeField("requestFullscreen", "onRequestFullscreen")
 
     ' Las pestañas se resuelven con la regla probada: switch de marca × lo que manda el backend.
     userInfo = m.global.session
@@ -21,10 +22,29 @@ sub init()
     m.ZONE_CONTENT = 1
     m.zone = m.ZONE_CONTENT
     applyZone()
+
+    ' Un Group que recibe el foco SE LO QUEDA: hay que delegarlo a mano en el hijo activo. Sin
+    ' esto, MainScene daba el foco a esta pantalla y las teclas no llegaban nunca a LiveScreen.
+    ' Verificado en el simulador el 2026-09-21 (docs/ROKU-GOTCHAS.md §21).
+    m.top.observeField("focusedChild", "onFocusReceived")
+end sub
+
+sub onFocusReceived()
+    if m.top.hasFocus() then applyZone()
 end sub
 
 sub onVideoNodeChanged()
     m.live.videoNode = m.top.videoNode
+end sub
+
+' La pila de pantallas la gobierna MainScene: aquí solo se reenvía la petición hacia arriba.
+sub onRequestFullscreen()
+    m.top.fullscreenCnId = m.live.currentCnId
+end sub
+
+sub onResume()
+    m.live.syncCnId = m.top.resumeCnId
+    m.live.setFocus(true)
 end sub
 
 sub applyZone()

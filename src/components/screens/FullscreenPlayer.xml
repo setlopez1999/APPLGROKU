@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Reproductor a pantalla completa (docs/DISENO.md §2.5).
+
+  No dibuja vídeo: el nodo Video es ÚNICO y lo dibuja MainScene por detrás de toda la pila. Esta
+  pantalla solo se ocupa del zapping y de una barra de información que se esconde sola.
+
+  Zapping con ↑↓. El mando de Roku NO tiene CH+/CH- (docs/ROKU-GOTCHAS.md §6), así que aquí las
+  flechas sí son para cambiar de canal — a diferencia de "TV en directo", donde navegan.
+
+  ⚠ NO VERIFICADO EN UN ROKU FÍSICO.
+-->
+<component name="FullscreenPlayer" extends="Group">
+
+  <interface>
+    <field id="videoNode" type="node" />
+    <field id="startCnId" type="integer" value="0" onChange="onStartChannel" />
+    <!-- Canal en el que se queda al salir, para que "TV en directo" se sincronice -->
+    <field id="currentCnId" type="integer" value="0" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/screens/FullscreenPlayer.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Time.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Device.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelAccess.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelInfo.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Epg.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Playback.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Zapping.brs" />
+
+  <children>
+    <!-- Barra inferior con el canal. Aparece al cambiar y se esconde sola. -->
+    <Group id="infoBar" translation="[0,820]">
+      <Rectangle id="infoBg" width="1920" height="260" />
+      <Poster id="logo" translation="[64,60]" width="120" height="80" />
+      <Label id="number" translation="[210,80]" font="font:MediumBoldSystemFont" />
+      <Label id="name" translation="[290,74]" font="font:LargeBoldSystemFont" />
+      <Label id="programTitle" translation="[64,170]" width="1400" font="font:MediumSystemFont" />
+      <Label id="programTime" translation="[1500,174]" width="356" horizAlign="right"
+             font="font:SmallSystemFont" />
+    </Group>
+
+    <Label id="status" translation="[64,60]" width="1400" font="font:MediumSystemFont" />
+
+    <Timer id="hideTimer" duration="5" repeat="false" />
+  </children>
+
+</component>

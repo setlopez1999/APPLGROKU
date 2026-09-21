@@ -29,7 +29,14 @@ end sub
 
 ' ---- pila de pantallas -------------------------------------------------------
 
-sub pushScreen(node as object)
+sub pushScreen(node as object, hidePrevious = false as boolean)
+    ' Pantalla completa OCULTA la de debajo: si no, los overlays de "TV en directo" se verían
+    ' encima del vídeo, porque esta pantalla no lleva fondo propio. Los modales, en cambio, tienen
+    ' que dejar ver lo que hay detrás.
+    if hidePrevious and m.stack.Count() > 0
+        m.stack[m.stack.Count() - 1].visible = false
+    end if
+
     m.screenStack.appendChild(node)
     m.stack.Push(node)
     node.setFocus(true)
@@ -41,7 +48,10 @@ sub popScreen()
 
     top = m.stack.Pop()
     m.screenStack.removeChild(top)
-    m.stack[m.stack.Count() - 1].setFocus(true)
+
+    debajo = m.stack[m.stack.Count() - 1]
+    debajo.visible = true
+    debajo.setFocus(true)
 end sub
 
 ' Reemplaza la pila entera (login → main, y al revés en el logout).
@@ -79,6 +89,8 @@ sub onLoginSuccess()
     main = CreateObject("roSGNode", "MainScreen")
     main.videoNode = m.videoPlayer
     main.observeField("logout", "onLogout")
+    main.observeField("fullscreenCnId", "onRequestFullscreen")
+    m.mainScreen = main
     replaceStack(main)
 end sub
 
@@ -95,6 +107,30 @@ sub onLogout()
     showLogin()
 end sub
 
+' ---- pantalla completa -------------------------------------------------------
+
+sub onRequestFullscreen()
+    player = CreateObject("roSGNode", "FullscreenPlayer")
+    player.videoNode = m.videoPlayer
+    m.fullscreenPlayer = player
+
+    pushScreen(player, true)
+
+    ' El canal se pone DESPUÉS de apilar: al asignarlo se dispara onStartChannel, que ya necesita
+    ' el nodo Video puesto y la pantalla en el árbol.
+    player.startCnId = m.mainScreen.fullscreenCnId
+end sub
+
+' Al salir, "TV en directo" tiene que quedarse en el canal al que se haya zapeado.
+sub syncAfterFullscreen()
+    if m.fullscreenPlayer = invalid then return
+    if m.mainScreen = invalid then return
+
+    cnId = m.fullscreenPlayer.currentCnId
+    m.fullscreenPlayer = invalid
+    if cnId > 0 then m.mainScreen.resumeCnId = cnId
+end sub
+
 ' ---- botón Atrás -------------------------------------------------------------
 
 function onKeyEvent(key as string, press as boolean) as boolean
@@ -106,6 +142,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
         ' llega aquí lo que nadie ha consumido.
         if m.stack.Count() > 1
             popScreen()
+            syncAfterFullscreen()
             return true
         end if
 

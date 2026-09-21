@@ -22,6 +22,11 @@ sub onContentChanged()
     content = m.top.itemContent
     if content = invalid then return
 
+    ' La lista NO tiene el foco (lo conduce ChannelGrid a mano), así que `focusPercent` siempre
+    ' vale 0. El marco lo decide este campo del ContentNode.
+    content.observeField("isSelected", "onSelectedChanged")
+    m.rowFocus.visible = content.isSelected
+
     m.logo.uri = content.logoUri
     m.number.text = content.numero
     m.name.text = content.title
@@ -113,6 +118,8 @@ function tvCellTitle(cell as object) as string
     return cell.titulo
 end function
 
-sub onFocusChanged()
-    m.rowFocus.visible = (m.top.focusPercent > 0.5)
+sub onSelectedChanged()
+    content = m.top.itemContent
+    if content = invalid then return
+    m.rowFocus.visible = content.isSelected
 end sub

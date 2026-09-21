@@ -40,6 +40,14 @@ sub init()
     loadCatalog()
     fetchGuide()
     applyZone()
+
+    ' Igual que MainScreen: si esta pantalla recibe el foco, lo delega en su zona activa
+    ' (docs/ROKU-GOTCHAS.md §21).
+    m.top.observeField("focusedChild", "onFocusReceived")
+end sub
+
+sub onFocusReceived()
+    if m.top.hasFocus() then applyZone()
 end sub
 
 ' Los degradados se imitan apilando rectángulos con alfa escalonada: SceneGraph no tiene gradientes.
@@ -123,6 +131,7 @@ sub onGuideResponse()
     if not response.ok then return
 
     m.guide = tvParseEpgGuide(response.json)
+    m.global.epg = m.guide
 
     ' La guía puede llegar con HTTP 200 y el arreglo VACÍO — no se ve en logs ni en códigos de
     ' estado, y la parrilla queda vacía como si fuera un bug de la app (BACKEND-GOTCHAS §7).
@@ -134,10 +143,8 @@ sub onGuideResponse()
     end if
 
     m.status.text = ""
-    print "[TV] guia cargada, ventana: "; m.epgWindow.pastColumns; " pasadas + "; m.epgWindow.futureColumns; " futuras"
     refreshGrid()
     refreshInfo()
-    print "[TV] ventana tras refresco: "; m.epgWindow.pastColumns; " pasadas + "; m.epgWindow.futureColumns; " futuras"
 end sub
 
 sub refreshGrid()
@@ -186,7 +193,19 @@ sub playCurrent()
     video.control = "play"
     video.visible = true
 
+    m.top.currentCnId = m.currentChannel.cnId
     refreshInfo()
+end sub
+
+' Vuelta de pantalla completa: el usuario puede haber zapeado. Se actualiza la info y la parrilla
+' SIN volver a arrancar el vídeo, que ya está sonando con ese canal.
+sub onSyncChannel()
+    channel = tvFindChannelByCnId(m.channels, m.top.syncCnId)
+    if channel = invalid then return
+    m.currentChannel = channel
+    m.top.currentCnId = channel.cnId
+    refreshInfo()
+    refreshGrid()
 end sub
 
 ' Decisión abierta §8.5 de plan_migracion.md: el servidor de vídeo devuelve 403 a cualquier
@@ -275,20 +294,3 @@ function onKeyEvent(key as string, press as boolean) as boolean
     return false
 end function
 
-' ---- tiempo ------------------------------------------------------------------
-
-function tvNowSeconds() as longinteger
-    date = CreateObject("roDateTime")
-    return date.AsSeconds()
-end function
-
-' Desfase horario del aparato, en segundos. Las funciones de `util/Time.brs` lo reciben como
-' parámetro justo para que el cálculo sea puro y testeable.
-function tvDeviceUtcOffsetSec() as integer
-    utc = CreateObject("roDateTime")
-    utcSeconds = utc.AsSeconds()
-
-    local = CreateObject("roDateTime")
-    local.ToLocalTime()
-    return Int(local.AsSeconds() - utcSeconds)
-end function

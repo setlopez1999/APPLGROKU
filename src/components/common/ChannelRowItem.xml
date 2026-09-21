@@ -12,7 +12,6 @@
 
   <interface>
     <field id="itemContent" type="node" onChange="onContentChanged" />
-    <field id="focusPercent" type="float" onChange="onFocusChanged" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/common/ChannelRowItem.brs" />
