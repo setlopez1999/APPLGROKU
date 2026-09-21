@@ -3,6 +3,7 @@
 ' ⚠ Toca el dispositivo: no se ejecuta en `npm test`.
 
 sub init()
+    print "[TV] MainScreen.init"
     m.brand = m.global.brand
 
     m.live = m.top.findNode("live")

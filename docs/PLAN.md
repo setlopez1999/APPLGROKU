@@ -216,11 +216,26 @@ mínima que arranca en el dispositivo. **Portar el test de auditoría de streams
 
 ### 9.0 Qué se puede probar sin Roku, y qué no
 
-**No existe un emulador de Roku.** Roku nunca ha publicado uno, y no hay alternativa decente. Para
-*ver* el canal hace falta un aparato físico — el más barato sirve, y de hecho uno de gama baja es
-mejor banco de pruebas, porque es lo que tienen los clientes de los ISP.
+**Roku no publica un emulador oficial**, pero existe **`brs-desktop`** (simulador de la comunidad,
+basado en `brs-engine`) y **cambia bastante el panorama**: trae instalador web, ECP, consola de
+depuración y una implementación PARCIAL de SceneGraph. Con él ya se verificó en el PC el arranque,
+el registro, el teclado, el foco y **una llamada HTTPS real al backend de producción**
+(ver `ROKU-GOTCHAS.md` §18).
 
-Lo que sí se puede hacer en el PC:
+Lo que el simulador **no** sustituye: el render fino, el rendimiento y sobre todo el **vídeo**. Para
+eso sigue haciendo falta un aparato físico — y uno de gama baja es mejor banco de pruebas, porque es
+lo que tienen los clientes de los ISP.
+
+Ciclo de trabajo con el simulador:
+
+```bash
+sh scripts/dev-cycle.sh                       # empaqueta + instala + lanza + vuelca la consola
+node scripts/dev-keys.js Down Down OK         # teclas por ECP
+node scripts/dev-keys.js --text "a@b.tv"      # escribir en un teclado en pantalla
+node scripts/dev-run.js 10 127.0.0.1 --no-launch   # solo escuchar la consola
+```
+
+Lo que se puede hacer en el PC:
 
 | Capa | Herramienta | ¿Se ejecuta sin Roku? |
 |---|---|---|
@@ -277,6 +292,7 @@ de Roku. La app de Android TV es el otro proyecto (`app-lg-kotlin-rediseno`).
 | Fecha | CU | Resumen | Verificación en Roku |
 |---|---|---|---|
 | 2026-09-17 | **Fase 0 — esqueleto** | Estructura de carpetas, `manifest` plantilla, documentación de arquitectura (este plan, `plan_migracion`, `arquitectura_flujo`, `DISENO`, `MULTI_ISP`, `ROKU-GOTCHAS`) y copia de `BACKEND-GOTCHAS`. Sin código de negocio. | — |
+| 2026-09-21 | **Primera ejecución real en el simulador** ✅ | `brs-desktop` (simulador de la comunidad) permite instalar, lanzar, mandar teclas por ECP y leer la consola desde el PC. Herramientas nuevas: `scripts/dev-cycle.sh`, `dev-run.js`, `dev-keys.js`. **3 bugs encontrados y corregidos, ninguno detectable por el compilador**: (1) `global` es palabra reservada y reventaba el arranque con un error que no lo sugiere; (2) ocultar el teclado NO le quita el foco — el nodo invisible se comía las teclas y el siguiente ATRÁS cerraba el canal (§17); (3) un fallo de mi propio script de teclas, no de la app (`Lit_%40` no escribe la arroba, `Lit_@` sí). **Verificado funcionando**: arranque, registro, teclado, foco, y una llamada **HTTPS real a `oneplay.iptvperu.tv` con `platform=12` → HTTP 200** (§18). | ✅ En simulador. Falta aparato real para vídeo y render |
 | 2026-09-21 | **"TV en directo" + cierre de la decisión §8.3** ◑ | `EpgGrid.brs` (puro y testeado): ventana de celdas de la parrilla, réplica de `LiveViewModel.buildEpg()` del Kotlin. **Al leerlo se cerró la decisión abierta §8.3**: el rediseño NO usa celdas de ancho proporcional a la duración, usa un número fijo de columnas (3 pasadas, 1 futura) que se ajusta a los datos — eso sí se porta a SceneGraph. Todas las filas quedan del mismo ancho (las que faltan, vacías) para que la rejilla no se descuadre. El ▶ de catch-up solo sale si la grabación está **sondeada**, no si el backend dice que existe. Componentes: `CategoryTabs`, `CurrentChannelDisplay`, `ChannelRowItem`, `ChannelGrid` (MarkupList, perezoso), `LiveScreen` (modo inmersivo con los tres degradados imitados por bandas de alfa) y el nodo `Video` único, prestado por `MainScene`. **341 tests, 0 fallos.** | ◑ **Nada verificado visualmente: sigue sin haber Roku.** Pendientes en el aparato: el User-Agent APPMOVIL vía `ifHttpAgent` (§8.5), si las bandas de alfa se ven como degradado o a franjas, y el recorrido del foco entre las tres zonas |
 | 2026-09-17 | **CU-16, CU-18, reglas de reproducción + auditor de streams** ✅ | `Playback` (puro y testeado): heartbeat de 15 s con sus 6 guards, modal offline con guard anti-reapertura, acción al reconectar —**sin** el mensaje incondicional que el original mostraba aunque la reconexión hubiera ido bien—, reintento de HLS con el corte para urls vacías (la pantalla negra permanente de §5), y el orden premium→adulto→IP antes de reproducir. **295 tests, 0 fallos.** Y `scripts/audit-streams.js`: port del `StreamPlaybackAuditTest` del Kotlin, corre en Node sin Roku. | ✅ Auditor verificado de punta a punta contra un HLS público real: maestro → variante → 64 segmentos → primer segmento descargado y validado como MPEG-TS |
 | 2026-09-17 | **Sesión + capa de red** ◑ | `SessionRules` (puro y testeado): generación del `devid` de 10 dígitos —como TEXTO, porque 9.999.999.999 no cabe en un Integer de 32 bits—, descarte de MAC guardadas por versiones viejas, qué claves sobreviven al logout y validación del formulario de login. `data/local/Session` (registro + AES con `roEVPCipher`), `util/Http` (fábrica única de `roUrlTransfer` con los certificados, y clasificación TLS/404/200) y `components/tasks/ApiTask` (toda la red, fuera del hilo de render). **265 tests, 0 fallos.** ◑ = las tres últimas piezas solo están validadas por el compilador: `roRegistrySection` y `roUrlTransfer` no existen fuera del aparato. | **Pendiente: no hay Roku disponible todavía** |

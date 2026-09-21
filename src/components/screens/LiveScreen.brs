@@ -5,6 +5,7 @@
 ' tests; aquí solo hay composición, foco y el control del reproductor.
 
 sub init()
+    print "[TV] LiveScreen.init"
     m.brand = m.global.brand
 
     m.display = m.top.findNode("display")

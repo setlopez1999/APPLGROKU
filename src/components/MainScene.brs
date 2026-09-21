@@ -2,11 +2,11 @@
 '
 ' ⚠ Toca el dispositivo: no se ejecuta en `npm test`. Solo la valida el compilador.
 '
-' Nota: las funciones de `pkg:/source/` (BrandConfig, Session, los use cases…) son globales y se
-' pueden llamar desde cualquier componente sin incluirlas con <script>. **Verificar en el Roku**
-' (docs/ROKU-GOTCHAS.md §16).
+' Nota (verificada): lo que hay en `pkg:/source/` NO está disponible aquí por arte de magia. Cada
+' componente declara con <script> lo que usa, en su .xml (docs/ROKU-GOTCHAS.md §16).
 
 sub init()
+    print "[TV] MainScene.init"
     m.brand = m.global.brand
 
     ' El truco de siempre: sin vaciar backgroundURI, backgroundColor no se aplica.

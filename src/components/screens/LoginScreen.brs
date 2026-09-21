@@ -5,6 +5,7 @@
 ' data/remote/ApiRoutes.brs (construcción de la url). Aquí solo hay pegamento y foco.
 
 sub init()
+    print "[TV] LoginScreen.init"
     m.brand = m.global.brand
 
     ' --- marca y fondo ---
@@ -158,6 +159,9 @@ sub openKeyboard(field as string)
 end sub
 
 sub commitKeyboard()
+    ' Solo la longitud: el contenido de la contraseña no se registra nunca.
+    print "[TV] teclado '"; m.editingField; "' → "; Len(m.keyboard.text); " caracteres"
+
     if m.editingField = "email"
         m.email = m.keyboard.text
     else if m.editingField = "password"
@@ -166,7 +170,14 @@ sub commitKeyboard()
 
     m.keyboardLayer.visible = false
     m.editingField = ""
+
+    ' VERIFICADO EN EL SIMULADOR (2026-09-21): ocultar el teclado NO le quita el foco, y tampoco
+    ' basta con dárselo al padre. El nodo oculto se seguía comiendo las teclas y el siguiente ATRÁS
+    ' se escapaba hasta la escena raíz, que cerraba el canal. Hay que quitárselo EXPLÍCITAMENTE.
+    ' Ver docs/ROKU-GOTCHAS.md §17.
+    m.keyboard.setFocus(false)
     m.top.setFocus(true)
+
     refresh()
 end sub
 
@@ -175,6 +186,8 @@ end sub
 sub submit()
     ' Validación local antes de gastar una llamada (misma que el original).
     problema = tvValidateLoginForm(m.email, m.password)
+    print "[TV] submit (validación: '"; problema; "')"
+
     if problema <> ""
         m.errorLabel.text = problema
         return
@@ -185,6 +198,9 @@ sub submit()
     m.submitLabel.text = "Iniciando sesión..."
 
     url = tvApiGetWeb2Url(m.brand.baseUrl, m.email, m.password, tvSessionDeviceId(), m.brand.platform)
+
+    ' Nunca se registra la url entera: lleva el password en claro en el query string.
+    print "[TV] login → "; m.brand.baseUrl; "api/get-web2 (platform "; m.brand.platform; ")"
 
     m.loginTask = CreateObject("roSGNode", "ApiTask")
     m.loginTask.observeField("response", "onLoginResponse")
@@ -197,6 +213,7 @@ sub onLoginResponse()
     m.submitLabel.text = "Ingresar"
 
     response = m.loginTask.response
+    print "[TV] login respuesta: ok="; response.ok; " http="; response.statusCode; " error="; response.error
 
     if not response.ok
         ' Se distingue el fallo de transporte del de credenciales: el primero suele ser el

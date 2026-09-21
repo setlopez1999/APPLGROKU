@@ -11,8 +11,11 @@ sub Main()
 
     ' Nodo global: el estado compartido y observable de toda la sesión.
     ' Reemplaza las ~25 variables globales del original (ver docs/arquitectura_flujo.md §3).
-    global = screen.GetGlobalNode()
-    global.AddFields({
+    '
+    ' OJO: `global` es palabra RESERVADA en BrightScript y no se puede usar como nombre de variable.
+    ' El error que da es "Unable to cast Object to Interface", que no lo sugiere para nada.
+    globalNode = screen.GetGlobalNode()
+    globalNode.AddFields({
         brand: BrandConfig()
 
         ' --- Sesión (CU-01, 04, 17) ---

@@ -168,6 +168,7 @@ log. En el port de Android se perdió un diagnóstico leyendo los logs de otra a
 | `roArray` **no tiene `Insert()`** | Solo `Push`, `Pop`, `Shift`, `Unshift`, `Delete`, `Append`, `Clear`, `Count`. Para insertar en medio hay que desplazar por índice. Y falla en *ejecución*, no al compilar: "Function Call Operator ( ) attempted on non-function" |
 | `Str(n)` mete un espacio delante | Siempre `Str(n).Trim()`. Si no, se cuela en urls y textos |
 | El `mod` de un negativo da negativo | Al calcular la hora local con desfase negativo hay que sumar 86400 |
+| `global` no se puede usar como variable | Es palabra RESERVADA. El error que da es `Unable to cast "Object" to "Interface"`, que no lo sugiere para nada. Nos costó el primer arranque |
 | El `Integer` es de 32 bits | Máximo 2.147.483.647. El `devid` del original es un aleatorio entre 1.000.000.000 y **9.999.999.999**, que NO cabe. Se construye como texto de 10 dígitos, no como número |
 
 Las tres primeras las caza `npm test` en segundos; sin el intérprete en Node se habrían descubierto
@@ -205,3 +206,43 @@ sí funciona.
 **Consecuencia práctica**: al añadir una llamada nueva a un componente, hay que acordarse de añadir
 también su `<script>`. `npm run lint` lo caza al instante — es la razón de correrlo antes de cada
 envío al aparato.
+
+---
+
+## 17. Ocultar un nodo NO le quita el foco
+
+**Verificado en el simulador el 2026-09-21**, con el teclado del login.
+
+Al cerrar el teclado se hacía `keyboardLayer.visible = false` y `m.top.setFocus(true)`. **Ninguna de
+las dos cosas le quita el foco al nodo `Keyboard`**: seguía invisible pero comiéndose las teclas.
+Síntoma desconcertante: tras escribir el correo, las flechas dejaban de funcionar y el siguiente
+ATRÁS se escapaba hasta la escena raíz, **que cerraba el canal**.
+
+```brightscript
+m.keyboardLayer.visible = false
+m.keyboard.setFocus(false)     ' ← esta línea es la que hace falta
+m.top.setFocus(true)
+```
+
+**Regla general**: al cerrar cualquier capa que haya tomado el foco (teclado, modal, panel), hay que
+quitárselo EXPLÍCITAMENTE al nodo que lo tenía, además de ocultarlo. Esto es la versión Roku del
+mismo fallo que documentaron en tvOS y en Compose (`arquitectura_flujo.md` §5).
+
+---
+
+## 18. Lo que SÍ funciona (verificado en el simulador, 2026-09-21)
+
+Para no volver a dudar de estas piezas:
+
+| Pieza | Estado |
+|---|---|
+| `roUrlTransfer` + `SetCertificatesFile` sobre HTTPS | ✅ **200 real contra `oneplay.iptvperu.tv`** |
+| `Task` node para la red, fuera del hilo de render | ✅ |
+| `roRegistrySection` (leer y escribir) | ✅ |
+| Nodo `Keyboard` y captura de texto | ✅ |
+| `<script>` de `pkg:/source/` en componentes | ✅ (obligatorios, ver §16) |
+| `platform=12` aceptado por el backend | ✅ |
+
+**Salvedad**: el simulador (`brs-desktop`, extensión `brs-scenegraph`) implementa SceneGraph de forma
+PARCIAL. Lo que funciona aquí es buena señal, pero el render, el foco fino y sobre todo el **vídeo**
+hay que confirmarlos en un Roku de verdad.
