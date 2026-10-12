@@ -102,3 +102,28 @@ function tvResolveLaunchStep(channel as object, sections as object, premiumsAllo
     if channel.restriccion = 1 then return "ip"
     return "play"
 end function
+
+' ---- CU-09: el atasco mudo ---------------------------------------------------
+'
+' El reintento de `tvShouldRetryPlayback` solo cubre el caso en que el reproductor DICE que hay un
+' error. Pero el fallo más común en HLS en vivo no avisa: el canal se queda en `buffering` (o se
+' para en seco) y ahí se queda, negro y mudo, sin `errorCode` ni mensaje. Visto en el Roku Express
+' el 2026-10-12: el usuario ve el canal pararse y no se recupera solo nunca.
+'
+' Por eso hace falta un perro guardián aparte: si el reproductor lleva demasiado tiempo FUERA de
+' `playing`, se fuerza una recarga aunque nadie haya reportado un error.
+'
+' 10 s y no menos: un cambio de canal y un bache normal de HLS tardan unos segundos, y recargar
+' encima de un buffering que iba a resolverse solo lo único que hace es alargar el corte.
+function tvStallTimeoutSec() as integer
+    return 10
+end function
+
+function tvShouldRecoverFromStall(playerState as string, secondsOutOfPlaying as integer) as boolean
+    if playerState = "playing" then return false
+
+    ' El camino de error ya reintenta a los 2 s, que es más rápido: que no compitan los dos.
+    if playerState = "error" then return false
+
+    return secondsOutOfPlaying >= tvStallTimeoutSec()
+end function

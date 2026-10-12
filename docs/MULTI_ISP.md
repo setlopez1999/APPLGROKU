@@ -53,10 +53,26 @@ el logo**: sin logo la app usa el nombre en texto, nunca un rectángulo de color
 
 | Imagen | Tamaño | Para qué |
 |---|---|---|
-| `logo.png` | ~1900×600, transparente | Logo interno (navbar, login, intro) |
-| `icon.png` | 336×210 | Icono del canal en Roku |
-| `intro.png` | 1280×720 | Fondo del intro |
-| `login.png` | 1280×720 | Fondo del login |
+| `logo.png` | ~1900×600, transparente | Logo interno (navbar, login, intro) **y de él se derivan las demás** |
+| `icon.png` | 540×405 | Icono del canal en Roku. Si falta, se compone del logo |
+| `intro.png` | 1280×720 | Fondo del intro. Si falta, se compone del logo |
+| `login.png` | 1280×720 | Fondo del login. Si falta, se compone del logo |
+
+**Con entregar `logo.png` basta.** El build lee ese PNG y compone con él el icono del canal, los
+tres splash y los fondos de intro y login, centrado sobre el fondo de marca. Lo que el ISP entregue
+por su cuenta manda sobre lo generado.
+
+Antes no era así y **el icono del canal salía un cuadrado del color de marca** en la pantalla de
+inicio del Roku, porque el generador solo sabía escribir rellenos lisos.
+
+Tamaños que exige Roku, verificados contra su documentación del manifest:
+
+| Clave del manifest | Tamaño | |
+|---|---|---|
+| `mm_icon_focus_fhd` | **540×405** | obligatorio |
+| `mm_icon_focus_hd` | **290×218** | obligatorio |
+| `mm_icon_focus_sd` | — | obsoleto, ya no se genera |
+| `splash_screen_fhd` / `_hd` / `_sd` | 1920×1080 / 1280×720 / 720×480 | |
 
 ### Cómo se aplica
 

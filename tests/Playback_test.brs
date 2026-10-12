@@ -73,4 +73,20 @@ sub testPlayback()
     tvAssertEqual(tvResolveLaunchStep(conIp, r.sections, conPack, false), "ip", "canal con restricción: valida IP")
 
     tvAssertEqual(tvResolveLaunchStep({ streamUrl: "", sectionId: 10 }, r.sections, conPack, false), "unplayable", "sin url no se intenta nada")
+
+    tvSuite("Playback — CU-09 el atasco mudo (sin errorCode)")
+
+    ' El fallo más común de HLS en vivo NO avisa: el canal se queda en buffering, negro y mudo,
+    ' sin código de error. Sin perro guardián no se recupera nunca.
+    tvAssertEqual(tvStallTimeoutSec(), 10, "se da por atascado a los 10 segundos")
+    tvAssertEqual(tvShouldRecoverFromStall("buffering", 3), false, "un bache corto se deja resolver solo")
+    tvAssertEqual(tvShouldRecoverFromStall("buffering", 10), true, "10 s sin arrancar: se fuerza la recarga")
+    tvAssertEqual(tvShouldRecoverFromStall("stopped", 12), true, "parado en seco también cuenta")
+    tvAssertEqual(tvShouldRecoverFromStall("finished", 12), true, "un directo que 'termina' es un atasco")
+
+    ' Reproduciendo no se toca nada: recargar un canal que va bien es el peor bug posible aquí.
+    tvAssertEqual(tvShouldRecoverFromStall("playing", 999), false, "reproduciendo NUNCA se recarga")
+
+    ' Y que no compitan los dos caminos: el de error ya reintenta a los 2 s, que es más rápido.
+    tvAssertEqual(tvShouldRecoverFromStall("error", 30), false, "con error manda el reintento de 2 s")
 end sub

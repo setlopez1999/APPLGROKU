@@ -68,9 +68,13 @@
     <!-- TODO lo del overlay cuelga de aquí: así se muestra y se oculta en una sola asignación, y
          es imposible que se quede media capa flotando sobre el vídeo limpio. -->
     <Group id="overlay">
-      <!-- Velos sobre el vídeo (el vídeo lo dibuja MainScene, por detrás de esta pantalla) -->
-      <Group id="headerFade" />
-      <Group id="epgFade" />
+      <!-- Velos sobre el vídeo (el vídeo lo dibuja MainScene, por detrás de esta pantalla).
+           Son PNG de degradado de UNA FILA POR PÍXEL, generados en el build. Antes se imitaban
+           apilando rectángulos con alfa escalonada y en el aparato SE VEÍAN A BANDAS: cada
+           rectángulo era un escalón de opacidad visible sobre el vídeo. Aquí el escalón es de
+           1/255. La textura mide 2 px de ancho y el Poster la estira a 1920 (DISENO.md §1). -->
+      <Poster id="headerFade" translation="[0,0]" width="1920" height="538" />
+      <Poster id="epgFade" translation="[0,538]" width="1920" height="160" />
 
       <!-- Zona sólida de la parrilla, desde donde termina el degradado -->
       <Rectangle id="gridBackground" translation="[0,698]" width="1920" height="382" />
@@ -89,9 +93,14 @@
          que ya no se dibuja, el mando dejaría de responder por completo (CU-12). -->
     <Group id="keyCatcher" />
 
-    <!-- Certificación 3.4 de Roku: indicador obligatorio si algo tarda más de 3 s. -->
-    <Label id="loading" translation="[64,980]" width="900" font="font:MediumSystemFont"
-           visible="false" text="Cargando…" />
+    <!-- Certificación 3.4 de Roku: indicador obligatorio si algo tarda más de 3 s.
+         Va CENTRADO y fuera del overlay: antes estaba en y=980, debajo de la parrilla, así que
+         con la guía abierta no se veía — justo cuando más falta hace. -->
+    <Group id="loadingBox" translation="[660,470]" visible="false">
+      <RoundedRect id="loadingBg" width="600" height="96" shape="pill" />
+      <Label id="loading" width="600" height="96" horizAlign="center" vertAlign="center"
+             font="font:MediumBoldSystemFont" text="Cargando canal…" />
+    </Group>
 
     <Label id="status" translation="[64,400]" width="1200" font="font:MediumSystemFont" />
 
@@ -108,6 +117,9 @@
     <Timer id="retryTimer" duration="2" repeat="false" />
     <!-- Umbral del indicador de carga -->
     <Timer id="loadingTimer" duration="3" repeat="false" />
+    <!-- CU-09: perro guardián del atasco mudo. Un canal que se para SIN dar error no se recupera
+         solo nunca, y el usuario lo ve negro y callado hasta que cambia de canal a mano. -->
+    <Timer id="stallTimer" duration="1" repeat="true" />
   </children>
 
 </component>

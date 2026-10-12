@@ -17,8 +17,9 @@ sub init()
 
     m.status = m.top.findNode("status")
     m.status.color = m.brand.textSecondary
-    m.loading = m.top.findNode("loading")
-    m.loading.color = m.brand.textSecondary
+    m.loading = m.top.findNode("loadingBox")
+    m.top.findNode("loadingBg").color = m.brand.surface
+    m.top.findNode("loading").color = m.brand.textPrimary
 
     m.top.findNode("gridBackground").color = m.brand.background
 
@@ -61,6 +62,9 @@ sub init()
     m.retryTimer.observeField("fire", "onRetryTimer")
     m.loadingTimer = m.top.findNode("loadingTimer")
     m.loadingTimer.observeField("fire", "onLoadingTimer")
+    m.stallTimer = m.top.findNode("stallTimer")
+    m.stallTimer.observeField("fire", "onStallTick")
+    m.secondsOutOfPlaying = 0
 
     ' El primer dibujado NO mueve el foco: nadie ha alternado nada todavía.
     applyOverlayMode(true, false)
@@ -97,38 +101,19 @@ sub clearZoneHighlight()
     m.grid.gridFocused = false
 end sub
 
-' Los degradados se imitan apilando rectángulos con alfa escalonada: SceneGraph no tiene gradientes.
+' Los degradados son PNG generados en el build, no rectángulos apilados.
+'
+' El apilado con alfa escalonada era la solución anterior —SceneGraph no tiene degradados— y en el
+' Roku Express SE VEÍA A BANDAS: con 18 escalones, cada salto de opacidad se distingue sobre el
+' vídeo y la pantalla parece hecha a bloques. Con un PNG de una fila por píxel el salto es de
+' 1/255 y desaparece. Verificado en el aparato el 2026-10-12.
+'
+' El velo del header no baja de 0.35 (el Kotlin lo apaga del todo a los 420 px): aquí el texto del
+' canal quedaba sobre vídeo crudo y, con una imagen clara detrás, no se leía.
 sub buildFades()
-    ' DESVIACIÓN respecto al Kotlin, decidida al verlo en pantalla (2026-09-21): allí el velo del
-    ' header se apaga del todo a los 420 px. Aquí el texto del canal y los botones quedaban sobre
-    ' vídeo crudo y, con una imagen clara de fondo, no se leían. El velo ya no baja de 0.35: cubre
-    ' todo el bloque de info y enlaza sin salto con el de la parrilla.
-    buildFade(m.top.findNode("headerFade"), 0, 538, 0.88, 0.35, 18)
-
-    ' De ahí a negro pleno, justo donde empiezan las filas sólidas de la parrilla.
-    buildFade(m.top.findNode("epgFade"), 538, 160, 0.35, 1.0, 14)
+    m.top.findNode("headerFade").uri = "pkg:/images/fade_header.png"
+    m.top.findNode("epgFade").uri = "pkg:/images/fade_epg.png"
 end sub
-
-sub buildFade(parent as object, y as integer, height as integer, alphaTop as float, alphaBottom as float, steps as integer)
-    stepHeight = Int(height / steps)
-    for i = 0 to steps - 1
-        alpha = alphaTop + ((alphaBottom - alphaTop) * i) / (steps - 1)
-        band = parent.createChild("Rectangle")
-        band.translation = [0, y + i * stepHeight]
-        band.width = 1920
-        ' +1 px de solape: si no, se ven costuras finas entre bandas.
-        band.height = stepHeight + 1
-        band.color = "0x000000" + liveAlphaHex(alpha)
-    end for
-end sub
-
-function liveAlphaHex(alpha as float) as string
-    value = Int(alpha * 255)
-    if value < 0 then value = 0
-    if value > 255 then value = 255
-    digits = "0123456789ABCDEF"
-    return Mid(digits, Int(value / 16) + 1, 1) + Mid(digits, (value mod 16) + 1, 1)
-end function
 
 ' ---- CU-12: los dos modos ----------------------------------------------------
 '
@@ -604,6 +589,8 @@ sub playCurrent()
 
     m.loadedUrl = m.currentChannel.streamUrl
     m.retryAttempts = 0
+    m.secondsOutOfPlaying = 0
+    m.stallTimer.control = "start"
     syncCurrentChannelState()
 end sub
 
@@ -659,6 +646,36 @@ sub onVideoState()
         m.loadingTimer.control = "stop"
         m.loadingTimer.control = "start"
     end if
+end sub
+
+' CU-09 — El perro guardián del atasco mudo.
+'
+' El reintento por `error` no basta: el fallo más común de HLS en vivo no reporta error ninguno,
+' el canal simplemente se queda en `buffering` y ahí muere. Esto cuenta cuánto lleva el
+' reproductor FUERA de `playing` y, pasado el umbral, fuerza una recarga.
+sub onStallTick()
+    ' Mientras hay una grabación encima, el reproductor no es nuestro.
+    if m.global.catchupActive then return
+
+    video = m.top.videoNode
+    if video = invalid then return
+    if m.currentChannel = invalid then return
+    if not tvIsPlayable(m.currentChannel) then return
+
+    if video.state = "playing"
+        m.secondsOutOfPlaying = 0
+        return
+    end if
+
+    m.secondsOutOfPlaying = m.secondsOutOfPlaying + 1
+    if not tvShouldRecoverFromStall(video.state, m.secondsOutOfPlaying) then return
+
+    print "[TV] atasco: "; m.secondsOutOfPlaying; " s en '"; video.state; "' — se fuerza la recarga"
+    m.secondsOutOfPlaying = 0
+    m.status.text = "Reconectando…"
+    m.loading.visible = true
+    m.loadedUrl = ""
+    playCurrent()
 end sub
 
 sub onLoadingTimer()

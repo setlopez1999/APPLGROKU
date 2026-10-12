@@ -24,6 +24,7 @@ const fs = require('fs');
 const path = require('path');
 const { readProperties, brandValue, brandBool } = require('./lib/properties');
 const { solidPng, hexToRgb } = require('./lib/png');
+const { decodePng, logoOnBackground, verticalFadePng } = require('./lib/image');
 
 const ROOT = path.resolve(__dirname, '..');
 const ENV = path.join(ROOT, 'ENV');
@@ -143,23 +144,59 @@ for (const [src, dst] of Object.entries(DESDE_ENV)) {
 }
 
 const oscuro = hexToRgb('#0B0B0D');
-const RELLENO = [
-  { file: 'icon_focus_hd.png', w: 336, h: 210, color: hexToRgb(accent) },
-  { file: 'icon_focus_sd.png', w: 248, h: 140, color: hexToRgb(accent) },
-  { file: 'splash_fhd.png', w: 1920, h: 1080, color: oscuro },
-  { file: 'splash_hd.png', w: 1280, h: 720, color: oscuro },
-  { file: 'splash_sd.png', w: 720, h: 480, color: oscuro },
-  { file: 'brand_intro.png', w: 1280, h: 720, color: oscuro },
-  { file: 'brand_login.png', w: 1280, h: 720, color: oscuro },
+
+// TAMANOS EXACTOS QUE PIDE ROKU. Verificados contra la documentacion del manifest:
+//   mm_icon_focus_fhd  540x405   obligatorio
+//   mm_icon_focus_hd   290x218   obligatorio
+//   mm_icon_focus_sd             obsoleto, ya no se genera
+//   splash             1920x1080 / 1280x720 / 720x480
+// Los valores anteriores (336x210 y 248x140) no correspondian a ninguna clave real.
+const DERIVADAS = [
+  { file: 'icon_focus_fhd.png', w: 540, h: 405, cover: 0.78 },
+  { file: 'icon_focus_hd.png', w: 290, h: 218, cover: 0.78 },
+  { file: 'splash_fhd.png', w: 1920, h: 1080, cover: 0.34 },
+  { file: 'splash_hd.png', w: 1280, h: 720, cover: 0.34 },
+  { file: 'splash_sd.png', w: 720, h: 480, cover: 0.34 },
+  { file: 'brand_intro.png', w: 1280, h: 720, cover: 0.3 },
+  { file: 'brand_login.png', w: 1280, h: 720, cover: 0.3 },
 ];
 
-const generadas = [];
-for (const img of RELLENO) {
-  const destino = path.join(imagesDst, img.file);
-  if (!fs.existsSync(destino)) {
-    fs.writeFileSync(destino, solidPng(img.w, img.h, img.color));
-    generadas.push(img.file);
+// El icono del canal salia un CUADRADO DE COLOR en la pantalla de inicio del Roku: sin poder leer
+// el PNG del ISP, lo unico que se podia generar era un relleno liso. Ahora se compone el logo del
+// cliente sobre el fondo de marca, que es ademas lo que hacen los otros clientes de la flota.
+let logo = null;
+if (hayLogo) {
+  try {
+    logo = decodePng(fs.readFileSync(path.join(ENV, 'logo.png')));
+  } catch (err) {
+    console.warn(`  aviso: no se pudo leer logo.png (${err.message}) — iconos en color liso`);
   }
+}
+
+const generadas = [];
+for (const img of DERIVADAS) {
+  const destino = path.join(imagesDst, img.file);
+  // Lo que entregue el ISP manda: estas solo rellenan lo que falta.
+  if (fs.existsSync(destino)) continue;
+
+  if (logo) {
+    fs.writeFileSync(destino, logoOnBackground(logo, img.w, img.h, oscuro, img.cover));
+  } else {
+    // Sin logo no hay nada que componer. Fondo de marca liso, nunca el color de acento a pantalla
+    // completa: un bloque verde se lee como un error de carga.
+    fs.writeFileSync(destino, solidPng(img.w, img.h, oscuro));
+  }
+  generadas.push(img.file);
+}
+
+// Degradados del overlay, como PNG de una fila por pixel. Antes se imitaban apilando rectangulos
+// con alfa escalonada y en el aparato se veian A BANDAS (docs/DISENO.md 1).
+const FADES = [
+  { file: 'fade_header.png', h: 538, from: 0.88, to: 0.35 },
+  { file: 'fade_epg.png', h: 160, from: 0.35, to: 1.0 },
+];
+for (const f of FADES) {
+  fs.writeFileSync(path.join(imagesDst, f.file), verticalFadePng(f.h, [0, 0, 0], f.from, f.to));
 }
 
 // ---- 4. BrandConfig.brs -------------------------------------------------------

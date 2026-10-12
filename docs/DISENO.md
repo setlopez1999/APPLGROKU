@@ -258,6 +258,7 @@ se paga en memoria y en tirones al hacer scroll.
 | Desviación | Motivo | Estado |
 |---|---|---|
 | "Glass" con translucidez plana en vez de blur real | SceneGraph no tiene blur de fondo barato | Aceptada |
+| Degradados como PNG, no como nodo | SceneGraph no tiene degradados. Apilar rectángulos con alfa escalonada **se ve a bandas en el aparato** (verificado 2026-10-12): cada escalón es un salto de opacidad visible sobre el vídeo. Se generan en el build, 2 px de ancho × una fila por píxel de alto | Resuelta |
 | Sin CH+/CH- para el zapping | El control de Roku no tiene esos botones | Aceptada (`plan_migracion.md` §8.2) |
 | Anchos de celda del EPG | Por decidir tras medir en dispositivo | Cerrada: columnas fijas, como el Kotlin (`plan_migracion.md` §8.3) |
 | Sin CH+/CH- (solo flechas) | El mando de Roku no tiene esos botones | Aceptada |
