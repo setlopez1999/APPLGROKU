@@ -77,3 +77,18 @@ function tvLooksLikeEmail(email as string) as boolean
     if Instr(at + 1, email, "@") > 0 then return false ' una sola arroba
     return true
 end function
+
+' ---- CU-01: ¿se puede entrar sin pasar por el login? -------------------------
+'
+' Hacen falta las TRES cosas. El token identifica la sesión, pero el backend exige además el
+' password en claro en cada get-web2 (BACKEND-GOTCHAS §11): sin él no se puede revalidar, y entrar
+' para que la app te eche a los pocos segundos es peor que pedir las credenciales de entrada.
+'
+' Ojo con el caso del medio: hay sesión pero NO password guardado. Eso solo pasa si el registro se
+' quedó a medias; la respuesta correcta es mandar al login, no arrancar algo que va a fallar.
+function tvCanResumeSession(email as string, token as string, password as string) as boolean
+    if email.Trim() = "" then return false
+    if token.Trim() = "" then return false
+    if password = "" then return false
+    return true
+end function

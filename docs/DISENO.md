@@ -148,7 +148,9 @@ Modo **inmersivo** (es el activo en el rediseño):
     el solapamiento al hacer scroll.
 
 **Información del canal** (`CurrentChannelDisplay`): número, logo, nombre, título del programa,
-horario, categoría y barra de progreso. Botones **Mi lista** y **pantalla completa**.
+horario, categoría y barra de progreso. Botón **Mi lista**, y solo ese: el de pantalla completa
+desapareció con la pantalla única (§2.5), porque el vídeo ya está siempre a pantalla completa
+detrás del overlay.
 
 **CategoryTabs**: píldoras horizontales; la activa es blanca con texto oscuro.
 
@@ -157,15 +159,40 @@ pasadas (catch-up), la de AHORA, y 1 futura. **No** son celdas de ancho proporci
 La ventana es maleable: si no hay datos pasados no se dibuja ninguna columna pasada, y todas las
 filas tienen el mismo ancho (las que faltan van vacías) para que la rejilla quede alineada.
 
-La celda de AHORA lleva barra de progreso. Las **pasadas con grabación comprobada** llevan marca de
-reproducible (▶) — comprobada de verdad, con sonda: el flag `catchup` del backend miente
-(`BACKEND-GOTCHAS.md` §3). Lógica en `domain/usecase/EpgGrid.brs`, con tests.
+La celda de AHORA lleva barra de progreso y **su título va en el color de marca derivado**
+(`accentText`), no un fondo de color. El fondo lo pisa el marco de foco, así que la celda perdía su
+marca justo al seleccionarla; el texto el foco no lo toca. Las **pasadas con grabación comprobada**
+llevan marca de reproducible (▶) — comprobada de verdad, con sonda: el flag `catchup` del backend
+miente (`BACKEND-GOTCHAS.md` §3). Lógica en `domain/usecase/EpgGrid.brs`, con tests.
 
-### 2.5 Pantalla completa (`FullscreenPlayer`)
+### 2.5 Los dos modos de "TV en directo"
 
-Vídeo a pantalla completa. **↑↓ hacen zapping.** Encima pueden aparecer los modales (parental,
-premium, restricción, offline). El mismo reproductor sirve para el catch-up, con la URL de la
-grabación en vez de la del vivo.
+**No hay una pantalla de reproductor aparte.** "TV en directo" es una sola pantalla con dos modos, y
+el vídeo **no se interrumpe** al pasar de uno a otro — esa es la razón de ser del diseño.
+
+| Modo | Qué se ve | Qué hacen ↑↓ |
+|---|---|---|
+| Overlay **visible** | Barra superior, info del canal, categorías y parrilla, sobre el vídeo | Mueven el foco |
+| Overlay **oculto** | Solo el vídeo, limpio a pantalla completa | **Zapean** (CU-11) |
+
+Se oculta de tres formas, y las tres hacen lo mismo: con ATRÁS desde las categorías, **a los 2
+minutos sin tocar el mando**, o al llegar desde Buscar / Mi lista con un canal pedido.
+Vuelve con **OK**. La barra superior se oculta **con** el overlay.
+
+Al zapear con el overlay oculto aparece la **franja del canal** 5 s (`ChannelStrip`), con lo mismo
+que la zona superior y calculada igual.
+
+> **El auto-ocultado solo actúa si el reproductor está en `playing`.** Existe para destapar el
+> vídeo; sin vídeo detrás solo deja un negro mudo, y el usuario que vuelve no sabe si la app se
+> colgó o se quedó sin internet. Regla en `tvCanAutoHideOverlay`, con tests.
+
+### 2.5.b Reproductor de grabaciones (`CatchupPlayer`)
+
+Esta **sí** es una pantalla aparte, y a propósito: tiene controles que el directo no necesita.
+Avance y retroceso saltan **una dieciseisava parte de la duración**, no un número fijo de segundos,
+para que el salto sea proporcionado en una grabación de 20 minutos y en una de 3 horas. Al abrirla
+el directo se **detiene** (no se pausa: pausar no libera el decodificador). Al cerrarla, el directo
+se vuelve a **preparar** y la parrilla vuelve a la fila **del canal de la grabación**.
 
 ### 2.6 Mi lista · Buscar · Perfil
 
@@ -232,4 +259,7 @@ se paga en memoria y en tirones al hacer scroll.
 |---|---|---|
 | "Glass" con translucidez plana en vez de blur real | SceneGraph no tiene blur de fondo barato | Aceptada |
 | Sin CH+/CH- para el zapping | El control de Roku no tiene esos botones | Aceptada (`plan_migracion.md` §8.2) |
-| Anchos de celda del EPG | Por decidir tras medir en dispositivo | **Abierta** (`plan_migracion.md` §8.3) |
+| Anchos de celda del EPG | Por decidir tras medir en dispositivo | Cerrada: columnas fijas, como el Kotlin (`plan_migracion.md` §8.3) |
+| Sin CH+/CH- (solo flechas) | El mando de Roku no tiene esos botones | Aceptada |
+| Sin control del buffer del reproductor | Roku no expone los umbrales de buffer que sí ajusta ExoPlayer en el Kotlin. El arranque lo gobierna el firmware | Aceptada |
+| La pantalla puede entrar en reposo con el vídeo parado | Roku no tiene API para impedir el salvapantallas; lo suprime solo mientras hay vídeo en marcha | Aceptada |

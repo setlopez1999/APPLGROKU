@@ -53,8 +53,10 @@ sub testCatalogRefresh()
     tvSuite("CatalogRefresh — ritmo adaptativo y reintento de la guía")
 
     tvAssertEqual(tvRefreshIntervalSec(true, true), 60, "todo bien: refresco normal de 60 s")
-    tvAssertEqual(tvRefreshIntervalSec(false, true), 15, "sin canal reproducible: reintenta antes")
-    tvAssertEqual(tvRefreshIntervalSec(true, false), 15, "sin guía: reintenta antes")
+    ' DEGRADADA = el servidor está devolviendo datos incompletos. 8 s engancha la recuperación en
+    ' cuanto llega; el caso sano no paga ese coste.
+    tvAssertEqual(tvRefreshIntervalSec(false, true), 8, "sin canal reproducible: cada 8 s")
+    tvAssertEqual(tvRefreshIntervalSec(true, false), 8, "sin guía: cada 8 s")
 
     ' §7: la guía se reintenta por su cuenta aunque los canales no hayan cambiado
     tvAssertEqual(tvShouldRetryGuide(true, false), true, "guía vacía se reintenta aunque nada cambie")

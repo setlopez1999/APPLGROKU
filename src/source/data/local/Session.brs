@@ -174,3 +174,28 @@ function tvSha256Hex(value as string) as string
     bytes.FromAsciiString(value)
     return digest.Process(bytes)
 end function
+
+' ---- CU-01/CU-03: sesión persistente -----------------------------------------
+'
+' Lo que se guarda es el ASIDERO de la sesión —correo y token—, NO la sesión entera.
+'
+' El original metía el `UserInfo` completo en localStorage, catálogo incluido. Aquí no cabe: el
+' registro del Roku son 32 KB para todo el canal, y el catálogo de un ISP mediano se los come
+' (docs/ROKU-GOTCHAS.md §5). Con el asidero basta: al arrancar se pide get-web2 con el token y el
+' servidor devuelve plan y catálogo frescos, que es justo lo que la revalidación hace cada minuto.
+'
+' Efecto para el usuario, que es lo que pide CU-01: cerrar la app y volver a abrirla entra directo
+' a la televisión, sin bienvenida y sin escribir nada.
+
+sub tvSessionSaveHandle(email as string, token as string)
+    tvRegistryWrite("sessionEmail", email)
+    tvRegistryWrite("sessionToken", token)
+end sub
+
+function tvSessionHandle() as object
+    return {
+        email: tvRegistryRead("sessionEmail")
+        token: tvRegistryRead("sessionToken")
+        password: tvSessionPassword()
+    }
+end function

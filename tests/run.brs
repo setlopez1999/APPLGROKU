@@ -29,6 +29,7 @@ sub main()
     testParentalPin()
     testSearch()
     testEpgGrid()
+    testOverlay()
 
     code = tvTestExitCode()
     if code <> 0 then throw "Hay tests en rojo"

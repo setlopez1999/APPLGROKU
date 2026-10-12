@@ -3,9 +3,15 @@
 Canal de Roku (BrightScript + SceneGraph) de TV-Visor: IPTV multi-ISP con canales en vivo, EPG,
 catch-up, favoritos, control parental y multi-CDN.
 
-- **Diseño**: réplica del rediseño Kotlin (`../app-lg-kotlin-rediseno`, rama `NORETURNOVERLAYNEWFLOW`).
-- **Funcionalidad**: paridad con el original (`../app-lg`), los 20 casos de uso.
-- **Estado**: Fase 0 — esqueleto y documentación. Sin código de negocio.
+- **Diseño**: réplica del rediseño Kotlin (`../app-lg-kotlin-rediseno`).
+- **Spec**: `../app-lg-kotlin-rediseno/docs_final/` — 9 documentos y 25 casos de uso, agnósticos
+  del lenguaje. Es lo que la app debe hacer.
+- **Estado**: funcional. 452 tests en verde y el recorrido completo verificado en un Roku Express
+  real contra el backend de producción.
+
+**TV en directo es UNA sola pantalla** con dos modos: con la guía encima, o el vídeo limpio a
+pantalla completa. El vídeo nunca se corta al pasar de uno a otro. No hay reproductor aparte para
+el directo; sí lo hay para las grabaciones, que necesitan avance y retroceso.
 
 ## Por dónde empezar
 

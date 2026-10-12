@@ -27,10 +27,9 @@ sub init()
 
     m.favBg = m.top.findNode("favBg")
     m.favLabel = m.top.findNode("favLabel")
-    m.fullBg = m.top.findNode("fullBg")
-    m.fullLabel = m.top.findNode("fullLabel")
 
-    m.buttons = [{ bg: m.favBg, label: m.favLabel, id: "mylist" }, { bg: m.fullBg, label: m.fullLabel, id: "fullscreen" }]
+    ' Un solo boton. El de pantalla completa desaparecio con la pantalla unica (CU-12).
+    m.buttons = [{ bg: m.favBg, label: m.favLabel, id: "mylist" }]
     m.focusIndex = 0
 
     onFocusChanged()

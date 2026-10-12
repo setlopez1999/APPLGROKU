@@ -32,4 +32,25 @@ sub testCatchup()
     tvAssertEqual(tvCatchupIsOffered(false, conCatchup, pasado, ahora), false, "ISP que no es cliente de catch-up: nunca")
     tvAssertEqual(tvCatchupIsOffered(true, invalid, pasado, ahora), false, "canal invalid no revienta")
     tvAssertEqual(tvCatchupIsOffered(true, conCatchup, invalid, ahora), false, "programa invalid no revienta")
+
+    tvSuite("Catchup — CU-15 el salto de avance y retroceso")
+
+    ' Una dieciseisava parte de la duración, NO un número fijo de segundos: un salto de 10 s es
+    ' inútil en una película y uno de 5 min se pasa de largo en un noticiero.
+    tvAssertEqual(tvCatchupSeekStepSec(3600), 225, "en una grabación de 1 h el salto es de 3:45")
+    tvAssertEqual(tvCatchupSeekStepSec(1200), 75, "en una de 20 min, 1:15")
+    tvAssertEqual(tvCatchupSeekStepSec(10800), 675, "en una de 3 h, 11:15")
+
+    ' En una grabación muy corta el botón tiene que hacer algo perceptible igualmente.
+    tvAssertEqual(tvCatchupSeekStepSec(60), 10, "en una muy corta, el mínimo de 10 s")
+    tvAssertEqual(tvCatchupSeekStepSec(0), 10, "sin duración conocida, 10 s")
+
+    tvSuite("Catchup — el salto se acota a la grabación")
+
+    ' Sin acotar, Roku rechaza el seek fuera de rango y el botón no hace nada.
+    tvAssertEqual(tvCatchupSeekTarget(100, 225, true, 3600), 325, "avanzar suma el paso")
+    tvAssertEqual(tvCatchupSeekTarget(300, 225, false, 3600), 75, "retroceder lo resta")
+    tvAssertEqual(tvCatchupSeekTarget(100, 225, false, 3600), 0, "no se retrocede por debajo de 0")
+    tvAssertEqual(tvCatchupSeekTarget(3500, 225, true, 3600), 3600, "no se avanza más allá del final")
+    tvAssertEqual(tvCatchupSeekTarget(100, 225, true, 0), 325, "sin duración conocida no se acota por arriba")
 end sub

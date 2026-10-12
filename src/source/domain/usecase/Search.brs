@@ -55,7 +55,7 @@ function tvChannelMatches(channel as object, consultaNormalizada as string) as b
     ' Por nombre, en cualquier posición: buscar "tina" tiene que encontrar "Latina".
     if Instr(1, tvNormalizeForSearch(channel.nombre), consultaNormalizada) > 0 then return true
 
-    ' Por número, pero solo EXACTO: si "2" trajera el 2, el 12, el 20 y el 21, la lista de números
-    ' sería inútil. Quien teclea un número quiere ese canal.
-    return Str(channel.numero).Trim() = consultaNormalizada
+    ' Por número, por cualquier parte: quien teclea "5" espera encontrar también el 15 y el 50.
+    ' Son decenas de canales, no miles, así que la lista sigue siendo corta y util.
+    return Instr(1, Str(channel.numero).Trim(), consultaNormalizada) > 0
 end function

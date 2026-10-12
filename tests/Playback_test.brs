@@ -36,7 +36,11 @@ sub testPlayback()
 
     tvAssertEqual(tvPlayerRetryDelayMs(), 2000, "se reintenta a los 2 segundos")
     tvAssertEqual(tvShouldRetryPlayback("https://h/p.m3u8", 0), true, "un stream caído se reintenta")
-    tvAssertEqual(tvShouldRetryPlayback("https://h/p.m3u8", 3), false, "pero no infinitamente")
+
+    ' SIN TOPE, a propósito: en HLS en vivo los cortes son normales. Con un tope, al agotarlo el
+    ' canal se queda negro para siempre y hay que reiniciar el canal entero.
+    tvAssertEqual(tvShouldRetryPlayback("https://h/p.m3u8", 3), true, "y se sigue reintentando tras 3 intentos")
+    tvAssertEqual(tvShouldRetryPlayback("https://h/p.m3u8", 500), true, "no hay límite de intentos")
 
     ' EL CASO DE LA PANTALLA NEGRA PERMANENTE: url vacía + reintento automático
     tvAssertEqual(tvShouldRetryPlayback("", 0), false, "una url VACÍA no se reintenta nunca")

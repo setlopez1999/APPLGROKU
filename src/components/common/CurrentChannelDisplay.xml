@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
   Información del canal en emisión, sobre el vídeo (docs/DISENO.md §2.4): número, logo, nombre,
-  programa, horario y barra de progreso, más los botones Mi lista y pantalla completa.
+  programa, horario y barra de progreso, más el botón Mi lista.
+
+  YA NO HAY botón de pantalla completa: el vídeo de este rediseño SIEMPRE está a pantalla completa
+  detrás del overlay, así que el botón abría una segunda pantalla que no hacía falta. Se oculta el
+  overlay con ATRÁS y vuelve con OK (CU-12). Mismo cambio que el rediseño Kotlin.
 
   Los textos llegan ya formateados desde domain/usecase/ChannelInfo.brs — aquí no se calcula nada.
 
@@ -14,7 +18,7 @@
     <field id="info" type="assocarray" onChange="onInfoChanged" />
     <field id="isFavorite" type="boolean" value="false" onChange="onInfoChanged" />
     <field id="barFocused" type="boolean" value="false" onChange="onFocusChanged" />
-    <!-- "mylist" o "fullscreen" -->
+    <!-- "mylist" -->
     <field id="action" type="string" alwaysNotify="true" />
   </interface>
 
@@ -39,9 +43,6 @@
       <Label id="favLabel" width="260" height="72" horizAlign="center" vertAlign="center"
              font="font:SmallSystemFont" text="Mi lista" />
 
-      <RoundedRect id="fullBg" translation="[288,0]" width="300" height="72" shape="pill" />
-      <Label id="fullLabel" translation="[288,0]" width="300" height="72" horizAlign="center"
-             vertAlign="center" font="font:SmallSystemFont" text="Pantalla completa" />
     </Group>
   </children>
 

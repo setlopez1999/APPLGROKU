@@ -62,7 +62,10 @@ end function
 ' Ritmo del refresco. Normal 60 s, igual que el original; degradado 15 s hasta engancharse.
 function tvRefreshIntervalSec(hasPlayableChannel as boolean, hasGuide as boolean) as integer
     if hasPlayableChannel and hasGuide then return 60
-    return 15
+
+    ' DEGRADADA: sin canal reproducible o sin guia. 8 s engancha la recuperacion en cuanto el
+    ' servidor vuelve; el caso sano (casi todo el tiempo) no paga ese coste.
+    return 8
 end function
 
 ' La guía se reintenta POR SU CUENTA aunque el catálogo no haya cambiado (§7): si solo se refresca

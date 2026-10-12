@@ -88,18 +88,28 @@ function buildCell(cell as object, ancho as integer) as object
         return group
     end if
 
-    if cell.esAhora
-        bg.color = m.brand.accentSoft
-    else
-        bg.color = m.brand.surfaceVariant
-    end if
+    ' La celda AHORA ya NO se distingue por el FONDO.
+    '
+    ' Antes llevaba el fondo del color del ISP, y al enfocarla el marco blanco la tapaba: la celda
+    ' perdia su marca justo al seleccionarla, y el usuario creia haber perdido algo. Como el foco
+    ' pisa el fondo, la senal de "al aire" se mueve al TEXTO, que el foco no toca.
+    ' Mismo cambio que el rediseno Kotlin (9056160, verificado en TV real).
+    bg.color = m.brand.surfaceVariant
 
     titulo = group.createChild("Label")
     titulo.translation = [16, 12]
     titulo.width = ancho - 32
     titulo.font = "font:SmallSystemFont"
-    titulo.color = m.brand.textPrimary
     titulo.text = tvCellTitle(cell)
+
+    ' El color es el acento DERIVADO (mezclado hacia blanco), no el crudo: el verde de Oneplay
+    ' (#00BB5F) sobre el gris de la celda se lee justo, y el de Playcom ya es claro. Derivarlo deja
+    ' el texto legible con CUALQUIER color de marca, sin ajustar nada por ISP.
+    if cell.esAhora
+        titulo.color = m.brand.accentText
+    else
+        titulo.color = m.brand.textPrimary
+    end if
 
     rango = group.createChild("Label")
     rango.translation = [16, 48]

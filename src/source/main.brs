@@ -36,11 +36,20 @@ sub Main()
         ' CU-14: adultos desbloqueados en esta sesion (se reinicia al cerrar sesion)
         adultUnlocked: false
 
-        ' --- Guía (CU-10) ---
+        ' --- Guía (CU-14) ---
         epg: {}
+
+        ' CU-04: la pantalla está DEGRADADA si la guía no llegó. Mientras lo esté, la revalidación
+        ' baja de 60 s a 8 s para engancharla en cuanto el servidor se recupere.
+        guideDegraded: false
 
         ' --- Conectividad (CU-18) ---
         isOnline: true
+
+        ' CU-15: hay una grabacion abierta encima. El nodo Video es UNICO y compartido, asi que
+        ' "TV en directo" tiene que dejar de reaccionar a su estado mientras no sea suyo: si no,
+        ' su reintento competiria con el de la grabacion por el mismo reproductor.
+        catchupActive: false
     })
 
     screen.CreateScene("MainScene")

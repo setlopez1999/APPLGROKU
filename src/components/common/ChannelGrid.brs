@@ -82,6 +82,29 @@ sub onGridFocusChanged()
     applyFocusIndex()
 end sub
 
+' CU-10 — Volver de una grabacion. Sin esto el usuario reaparece en la fila del canal que sigue
+' sonando y pierde el sitio donde estaba mirando.
+sub onAnchor()
+    cnId = m.top.anchorCnId
+    if cnId <= 0 then return
+
+    channels = m.top.channels
+    if channels = invalid then return
+
+    for i = 0 to channels.Count() - 1
+        if channels[i].cnId = cnId
+            m.focusIndex = i
+            m.cellIndex = -1
+            applyFocusIndex()
+            exit for
+        end if
+    end for
+
+    ' De una sola vez: se consume aqui. Si se quedara puesto, cada redibujado devolveria el foco a
+    ' esta fila y el usuario no podria moverse a ningun otro sitio.
+    m.top.anchorCnId = 0
+end sub
+
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
     if m.rows.Count() = 0 then return false

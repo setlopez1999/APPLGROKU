@@ -1,40 +1,47 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--
-  "TV en directo" — la pantalla principal (docs/DISENO.md §2.4), en modo INMERSIVO:
-  el vídeo del canal ocupa el fondo a pantalla completa y encima van, translúcidos, la información
-  del canal (60 % del alto) y la parrilla (el resto).
+  "TV en directo" — LA pantalla de la app. No hay otra donde se vea televisión.
 
-  Tres degradados enganchan las capas:
-    - header:  420 px, oscurece hasta 0.88 bajo la barra superior
-    - EPG:     empieza 110 px antes de que termine el preview y llega a NEGRO PLENO 160 px después,
-               justo donde empiezan las filas (que son sólidas) → la unión no se nota
+  Es una sola pantalla con DOS MODOS (CU-12), no dos pantallas:
 
-  DESVIACIÓN ACEPTADA: SceneGraph no tiene degradados. Se imitan apilando rectángulos con alfa
-  escalonada. Si en el aparato se ven bandas, se sustituye por un PNG de degradado.
+    overlay VISIBLE  barra superior + info del canal + categorías + parrilla, sobre el vídeo
+                     las flechas MUEVEN EL FOCO
+    overlay OCULTO   solo el vídeo, limpio a pantalla completa
+                     las flechas ZAPEAN (CU-11) y aparece la franja del canal 5 s (CU-13)
 
-  ⚠ NO VERIFICADO EN DISPOSITIVO. Ni el render ni el recorrido del foco.
+  El vídeo NO se interrumpe al pasar de un modo a otro: es la razón de ser de este diseño.
+
+  Tres degradados enganchan las capas sobre el vídeo. SceneGraph no tiene degradados, así que se
+  imitan apilando rectángulos con alfa escalonada (desviación aceptada, DISENO.md §6).
 -->
 <component name="LiveScreen" extends="Group">
 
   <interface>
     <!-- El nodo Video es ÚNICO en la app y lo presta MainScene (arquitectura_flujo.md §1) -->
     <field id="videoNode" type="node" onChange="onVideoNodeReady" />
-    <field id="requestFullscreen" type="boolean" alwaysNotify="true" />
-    <!-- Canal que se está viendo, para que el reproductor a pantalla completa arranque en él -->
+    <!-- Canal que se está viendo -->
     <field id="currentCnId" type="integer" value="0" />
-    <!-- Al volver de pantalla completa: puede haberse zapeado, hay que resincronizar SIN recargar -->
+    <!-- Resincronizar SIN recargar (se vuelve de otra pantalla con el mismo canal ya sonando) -->
     <field id="syncCnId" type="integer" value="0" onChange="onSyncChannel" />
-    <!-- La revalidacion detecto un cambio real en el catalogo -->
+    <!-- La revalidación detectó un cambio real en el catálogo -->
     <field id="catalogVersion" type="integer" value="0" onChange="onCatalogVersion" />
-    <!-- "premium" / "ip" / "unplayable" cuando un canal no se puede reproducir -->
+    <!-- "premium" / "adult" / "ip" / "unplayable" cuando un canal no se puede reproducir -->
     <field id="blockedReason" type="string" alwaysNotify="true" />
-    <!-- Grabacion a reproducir a pantalla completa: { url, titulo, cnId } -->
+    <!-- Grabación a reproducir: { url, titulo, cnId } -->
     <field id="requestCatchup" type="assocarray" alwaysNotify="true" />
     <field id="adultUnlocked" type="boolean" value="false" onChange="onAdultUnlocked" />
     <!-- Ventana de celdas ya construida, para que Mi lista y Buscar la reutilicen sin recalcular -->
     <field id="epgWindow" type="assocarray" />
     <!-- Reproducir este canal (lo piden Mi lista y Buscar) -->
     <field id="playCnId" type="integer" value="0" onChange="onPlayRequested" />
+
+    <!-- CU-12: el modo actual. MainScreen lo observa para ocultar la barra superior con él. -->
+    <field id="overlayVisible" type="boolean" value="true" />
+    <!-- CU-15: volver del reproductor de grabaciones. Hay que volver a PREPARAR el directo:
+         tras una detención, "reanudar" no hace nada y el canal se quedaría negro. -->
+    <field id="resumeLive" type="boolean" value="false" alwaysNotify="true" onChange="onResumeLive" />
+    <!-- CU-10: al volver de una grabación, anclar la parrilla en LA FILA DE ESE CANAL -->
+    <field id="catchupAnchorCnId" type="integer" value="0" onChange="onCatchupAnchor" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/LiveScreen.brs" />
@@ -53,27 +60,54 @@
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/FlattenCatalog.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/CatalogRefresh.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Playback.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Overlay.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Zapping.brs" />
   <script type="text/brightscript" uri="pkg:/source/data/remote/ApiRoutes.brs" />
 
   <children>
-    <!-- Velos sobre el vídeo (el vídeo lo dibuja MainScene, por detrás de esta pantalla) -->
-    <Group id="headerFade" />
-    <Group id="epgFade" />
+    <!-- TODO lo del overlay cuelga de aquí: así se muestra y se oculta en una sola asignación, y
+         es imposible que se quede media capa flotando sobre el vídeo limpio. -->
+    <Group id="overlay">
+      <!-- Velos sobre el vídeo (el vídeo lo dibuja MainScene, por detrás de esta pantalla) -->
+      <Group id="headerFade" />
+      <Group id="epgFade" />
 
-    <!-- Zona sólida de la parrilla, desde donde termina el degradado -->
-    <Rectangle id="gridBackground" translation="[0,698]" width="1920" height="382" />
+      <!-- Zona sólida de la parrilla, desde donde termina el degradado -->
+      <Rectangle id="gridBackground" translation="[0,698]" width="1920" height="382" />
 
-    <CurrentChannelDisplay id="display" translation="[0,180]" />
-    <CategoryTabs id="tabs" translation="[64,610]" />
-    <ChannelGrid id="grid" translation="[64,720]" />
+      <CurrentChannelDisplay id="display" translation="[0,180]" />
+      <CategoryTabs id="tabs" translation="[64,610]" />
+      <ChannelGrid id="grid" translation="[64,720]" />
+    </Group>
 
-    <!-- Arranque por pasos: en un Roku Express, hacer el aplanado del catalogo + la parrilla +
-         arrancar el video en un SOLO frame del hilo de render dispara el watchdog
-         ("Execution timeout", docs/ROKU-GOTCHAS.md 24). Cada tick hace un paso. -->
-    <Timer id="bootTimer" duration="0.2" repeat="true" />
+    <!-- CU-13: la franja, sobre el vídeo limpio. Fuera del overlay a propósito: es justamente lo
+         que se ve CUANDO el overlay no está. -->
+    <ChannelStrip id="strip" translation="[0,780]" visible="false" />
+
+    <!-- Receptor de teclas del modo pantalla completa. Invisible y sin contenido: existe solo para
+         que el foco tenga un sitio real donde estar con el overlay oculto. Si se quedara en un nodo
+         que ya no se dibuja, el mando dejaría de responder por completo (CU-12). -->
+    <Group id="keyCatcher" />
+
+    <!-- Certificación 3.4 de Roku: indicador obligatorio si algo tarda más de 3 s. -->
+    <Label id="loading" translation="[64,980]" width="900" font="font:MediumSystemFont"
+           visible="false" text="Cargando…" />
 
     <Label id="status" translation="[64,400]" width="1200" font="font:MediumSystemFont" />
+
+    <!-- Arranque por pasos: en un Roku Express, hacer el aplanado del catálogo + la parrilla +
+         arrancar el vídeo en un SOLO frame del hilo de render dispara el watchdog
+         ("Execution timeout", docs/ROKU-GOTCHAS.md §24). Cada tick hace un paso. -->
+    <Timer id="bootTimer" duration="0.2" repeat="true" />
+
+    <!-- CU-12: auto-ocultado a los 2 minutos de inactividad. Se reinicia con CUALQUIER tecla. -->
+    <Timer id="autoHideTimer" duration="120" repeat="false" />
+    <!-- CU-13: la franja dura 5 s -->
+    <Timer id="stripTimer" duration="5" repeat="false" />
+    <!-- CU-09: reintento de reproducción a los 2 s, SIN tope de intentos -->
+    <Timer id="retryTimer" duration="2" repeat="false" />
+    <!-- Umbral del indicador de carga -->
+    <Timer id="loadingTimer" duration="3" repeat="false" />
   </children>
 
 </component>

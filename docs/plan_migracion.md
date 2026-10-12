@@ -94,13 +94,20 @@ es la vista; la red solo en `src/components/tasks/`.
 Réplica del original (`../app-lg/docs/cu/STATE.md`), adaptada a Roku:
 
 1. Modal abierto (adulto / premium / restricción / offline) → cerrar modal
-2. Reproductor a pantalla completa → volver a `LiveScreen`
-3. EPG abierto → cerrar EPG
-4. Pantalla apilada (Perfil, Mi lista, Buscar) → volver a la pestaña anterior
-5. Pestaña distinta de la inicial → volver a "TV en directo"
-6. En la pantalla raíz → **dejar que Roku cierre el canal** (no hay "salir de la app" propio)
+2. Grabación abierta (`CatchupPlayer`) → cerrarla, volver a la guía **y** volver a preparar el directo
+3. Pantalla apilada (Perfil, Mi lista, Buscar) → cerrarla
+4. Overlay visible y el foco en la **grilla** → **subir el foco a las categorías**, sin ocultar nada
+5. Overlay visible y el foco arriba → **ocultar el overlay**
+6. Overlay oculto → **salir del canal, con doble pulsación** en 2 s (CU-25)
 
-Un único punto de decisión en `MainScene.onKeyEvent`, no handlers dispersos.
+Los dos que casi siempre se implementan mal son el 4 y el 6:
+
+- En la grilla, ATRÁS retrocede **un paso**. Quien está mirando la guía no quiere perderla entera.
+- Con el overlay oculto, ATRÁS **no** hace reaparecer la guía: ahí significa salir, y el primer
+  ATRÁS solo avisa ("Presiona atrás de nuevo para salir").
+
+La decisión es una función pura y probada, `tvResolveBackAction`. Los niveles 1–3 ni llegan a
+`LiveScreen`: cuando están abiertos tienen el foco y resuelven su propio ATRÁS antes.
 
 ---
 

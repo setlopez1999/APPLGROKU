@@ -52,3 +52,32 @@ end function
 function tvNumToStr(n as longinteger) as string
     return Str(n).Trim()
 end function
+
+' ---- CU-15: el salto de avance/retroceso -------------------------------------
+'
+' UNA DIECISEISAVA PARTE de la duración, no un número fijo de segundos: así el salto es
+' proporcionado tanto en una grabación de 20 minutos (75 s) como en una de 3 horas (11 min).
+' Un salto fijo de 10 s es inútil en una película y uno de 5 min se pasa de largo en un noticiero.
+'
+' Se acota por abajo para que en una grabación muy corta el botón haga algo perceptible.
+function tvCatchupSeekStepSec(durationSec as integer) as integer
+    if durationSec <= 0 then return 10
+
+    paso = Int(durationSec / 16)
+    if paso < 10 then return 10
+    return paso
+end function
+
+' Posición resultante de saltar, acotada a la grabación. Sin acotar, Roku rechaza el `seek` fuera
+' de rango y el botón no hace nada.
+function tvCatchupSeekTarget(positionSec as integer, stepSec as integer, forward as boolean, durationSec as integer) as integer
+    if forward
+        destino = positionSec + stepSec
+    else
+        destino = positionSec - stepSec
+    end if
+
+    if destino < 0 then return 0
+    if durationSec > 0 and destino > durationSec then return durationSec
+    return destino
+end function

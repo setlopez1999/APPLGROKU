@@ -65,9 +65,12 @@ end function
 ' una url vacía NO es invalid — se cuela por los guards ingenuos, el reproductor falla, el reintento
 ' automático se dispara, vuelve a fallar... y se queda reintentando la misma url vacía para siempre.
 ' Un canal sin url no se reintenta: no hay nada que reintentar.
-function tvShouldRetryPlayback(streamUrl as string, attempts as integer, maxAttempts = 3 as integer) as boolean
+' En HLS en vivo los cortes son NORMALES: la ventana de emision se queda atras, el servidor de
+' video rota, hay un hipo de red. La respuesta correcta es siempre la misma, sea cual sea el error,
+' y NO puede tener tope: con un tope, al agotarlo el canal se queda negro para siempre y el usuario
+' tiene que reiniciar el canal. Lo unico que impide reintentar es no tener url.
+function tvShouldRetryPlayback(streamUrl as string, attempts as integer) as boolean
     if streamUrl = "" then return false
-    if attempts >= maxAttempts then return false
     return true
 end function
 

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  CU-13 — La franja del canal.
+
+  Aparece sobre el vídeo limpio al zapear con el overlay oculto, y se va sola a los 5 segundos.
+  Con el overlay oculto no hay otra forma de saber a qué canal se acaba de llegar.
+
+  Muestra EXACTAMENTE lo mismo que la zona superior del overlay y se calcula igual: los dos leen
+  el modelo de domain/usecase/ChannelInfo.brs, que está probado. Aquí no se calcula nada.
+
+  Es decorativa: NO recibe foco nunca (regla 2 de DISENO.md §3).
+-->
+<component name="ChannelStrip" extends="Group">
+
+  <interface>
+    <!-- Modelo de tvBuildChannelInfo() -->
+    <field id="info" type="assocarray" onChange="onInfoChanged" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/common/ChannelStrip.brs" />
+
+  <children>
+    <!-- Velo propio: sobre una imagen clara el texto blanco no se lee -->
+    <Rectangle id="veil" width="1920" height="300" />
+
+    <Poster id="logo" translation="[64,44]" width="120" height="80" />
+    <Label id="number" translation="[210,64]" font="font:MediumBoldSystemFont" />
+    <Label id="name" translation="[300,58]" font="font:LargeBoldSystemFont" />
+
+    <Label id="programTitle" translation="[64,152]" width="1360" font="font:MediumBoldSystemFont" />
+    <Label id="programTime" translation="[1440,156]" width="416" horizAlign="right"
+           font="font:SmallSystemFont" />
+
+    <Rectangle id="progressTrack" translation="[64,206]" width="700" height="8" />
+    <Rectangle id="progressFill" translation="[64,206]" width="0" height="8" />
+
+    <Label id="nextLabel" translation="[64,234]" width="1360" font="font:SmallSystemFont" />
+  </children>
+
+</component>

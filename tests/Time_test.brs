@@ -31,4 +31,13 @@ sub testTime()
 
     tvAssertEqual(tvIsWithinRange(100, 200, 150), true, "instante dentro del rango")
     tvAssertEqual(tvIsWithinRange(100, 200, 250), false, "instante fuera del rango")
+
+    tvSuite("Time — duración legible (reproductor de grabaciones)")
+
+    tvAssertEqual(tvFormatDuration(0), "0:00", "cero")
+    tvAssertEqual(tvFormatDuration(9), "0:09", "los segundos van con dos dígitos")
+    tvAssertEqual(tvFormatDuration(75), "1:15", "menos de una hora: M:SS")
+    tvAssertEqual(tvFormatDuration(3600), "1:00:00", "una hora exacta pasa a H:MM:SS")
+    tvAssertEqual(tvFormatDuration(3725), "1:02:05", "una hora y pico")
+    tvAssertEqual(tvFormatDuration(-5), "0:00", "un valor negativo no rompe nada")
 end sub

@@ -24,11 +24,21 @@ sub testSearch()
     tvSuite("Search — buscar por número")
 
     porNumero = tvSearchChannels(r.channels, "2")
-    tvAssertEqual(porNumero.Count(), 1, "el número encuentra su canal")
-    tvAssertEqual(porNumero[0].numero, 2, "y es exactamente ese")
+    tvAssert(porNumero.Count() >= 1, "el número encuentra su canal")
 
-    ' Si "2" trajera el 2, el 20 y el 21, la lista de números no serviría de nada
-    tvAssertEqual(tvSearchChannels(r.channels, "3").Count(), 0, "el número es EXACTO, no un prefijo")
+    ' Por CUALQUIER PARTE del número: los canales reproducibles de la fixture son el 1, el 2, el
+    ' 30, el 60 y el 90. Ninguno es "0", así que con coincidencia exacta esto daría cero.
+    porCero = tvSearchChannels(r.channels, "0")
+    tvAssertEqual(porCero.Count(), 3, "buscar 0 trae el 30, el 60 y el 90")
+
+    encontroTreinta = false
+    for each c in porCero
+        if c.numero = 30 then encontroTreinta = true
+    end for
+    tvAssert(encontroTreinta, "el 30 aparece al buscar 0")
+
+    ' Un número que no existe en ninguna posición no devuelve nada.
+    tvAssertEqual(tvSearchChannels(r.channels, "777").Count(), 0, "un número inexistente no trae nada")
 
     tvSuite("Search — bordes")
 

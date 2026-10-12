@@ -60,6 +60,51 @@ if (!/^#[0-9a-fA-F]{6}$/.test(accent)) {
   process.exit(1);
 }
 
+// La versión se escribe en UN SOLO SITIO (config.txt) y de ahí sale todo: lo que ve el usuario en
+// el perfil, el manifest y el número interno. Escribir el número aparte lo desincroniza en cuanto
+// alguien olvida cambiar uno de los dos.
+if (!/^\d+\.\d+\.\d+$/.test(version)) {
+  console.error(`version debe ser "mayor.menor.parche", recibido: ${version}`);
+  process.exit(1);
+}
+
+// EL RIESGO REAL DEL ESQUEMA: el número interno sale de quitar los puntos (1.0.1 -> 101), así que
+// solo crece mientras ningún tramo pase de 9. Con un 1.0.10 el número sería 1010, y a partir de
+// ahí 1.1.0 daría 110 y 2.0.0 daría 200 — ambos MENORES, o sea imposibles de publicar. Un número
+// de versión quemado no se puede corregir, así que esto se detiene antes de empaquetar.
+for (const tramo of [major, minor, build]) {
+  if (Number(tramo) > 9) {
+    console.error(
+      `version ${version}: ningún tramo puede pasar de 9 con este esquema (el número interno ` +
+        `quitaría los puntos y dejaría de crecer). Migrar a mayor*10000 + menor*100 + parche.`
+    );
+    process.exit(1);
+  }
+}
+const versionCode = `${Number(major)}${Number(minor)}${Number(build)}`;
+
+// Acento para TEXTO: el de marca mezclado un 35% hacia el blanco. La derivación va aquí y no en el
+// canal porque es una cuenta fija: cuantos menos valores tenga que rellenar el ISP, menos formas
+// hay de entregar una app mal configurada (06-MULTI-ISP del rediseño).
+const accentText = '0x' + mixToWhite(accent, 0.35);
+
+function mixToWhite(hex, amount) {
+  const [r, g, b] = hexToRgb(hex);
+  const mix = (c) => Math.round(c + (255 - c) * amount);
+  return [mix(r), mix(g), mix(b)]
+    .map((c) => c.toString(16).padStart(2, '0').toUpperCase())
+    .join('');
+}
+
+// El backend concatena las rutas sin barra inicial, así que la base TIENE que acabar en "/".
+// Sin esto, "https://isp.tv" + "api/get-web2" da "https://isp.tvapi/get-web2" y el login falla con
+// un error de red que parece del servidor.
+let baseUrl = brandValue(cfg, 'baseUrl', '');
+if (baseUrl && !baseUrl.endsWith('/')) {
+  console.warn(`  aviso: baseUrl no acababa en "/" — se añade (${baseUrl}/)`);
+  baseUrl += '/';
+}
+
 // ---- 2. manifest --------------------------------------------------------------
 
 write(
@@ -136,9 +181,11 @@ function BrandConfig() as object
         appName: "${appname}"
         appBadge: "${brandValue(cfg, 'badge', '')}"
         appVersion: "${version}"
+        ' Numero interno derivado, NUNCA escrito a mano: ver la validacion en build-isp.js.
+        versionCode: ${versionCode}
 
         ' ---- Backend (ENV/config.txt) ----
-        baseUrl: "${brandValue(cfg, 'baseUrl', '')}"
+        baseUrl: "${baseUrl}"
         notificationsUrl: "${brandValue(cfg, 'notificationsUrl', '')}"
         notificationsEnabled: ${brandBool(cfg, 'notificationsEnabled')}
         isCatchupClient: ${brandBool(cfg, 'isCatchupClient')}
@@ -167,6 +214,12 @@ function BrandConfig() as object
         ' SceneGraph usa 0xRRGGBBAA; config.txt lo trae como #RRGGBB.
         accent: "0x" + hexOf(accent) + "FF"
         accentSoft: "0x" + hexOf(accent) + "33"
+
+        ' Acento para TEXTO: el mismo color mezclado un 35% hacia el blanco. Existe por un problema
+        ' real de contraste — un color de marca oscuro no se lee sobre las superficies grises del
+        ' tema, y uno claro sí. Aclararlo por calculo lo deja legible CON CUALQUIER color de marca,
+        ' sin tener que ajustar nada por ISP (06-MULTI-ISP del rediseno).
+        accentText: "${accentText}FF"
 
         ' ---- Neutros del tema oscuro (NO cambian por cliente) ----
         background: "0x0B0B0DFF"

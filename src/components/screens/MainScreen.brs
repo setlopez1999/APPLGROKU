@@ -9,8 +9,10 @@ sub init()
     m.live = m.top.findNode("live")
     m.navBar = m.top.findNode("navBar")
     m.navBar.observeField("action", "onNavAction")
-    m.live.observeField("requestFullscreen", "onRequestFullscreen")
     m.live.observeField("blockedReason", "onBlockedReason")
+    ' CU-12/CU-24: la barra superior se oculta CON el overlay. No tiene sentido dejarla flotando
+    ' sobre el video limpio.
+    m.live.observeField("overlayVisible", "onOverlayVisible")
     m.live.observeField("requestCatchup", "onRequestCatchup")
     m.profileMenu = m.top.findNode("profileMenu")
     m.profileMenu.observeField("action", "onProfileAction")
@@ -38,17 +40,33 @@ sub init()
     m.top.observeField("focusedChild", "onFocusReceived")
 end sub
 
+' Mismo criterio que LiveScreen: si el foco sale de esta pantalla (un modal de la escena), la barra
+' superior deja de verse enfocada. Dos resaltados a la vez dejan al usuario sin saber qué responde.
 sub onFocusReceived()
-    if m.top.hasFocus() then applyZone()
+    if m.top.isInFocusChain()
+        applyZone()
+        return
+    end if
+    m.navBar.barFocused = false
 end sub
 
 sub onVideoNodeChanged()
     m.live.videoNode = m.top.videoNode
 end sub
 
-' La pila de pantallas la gobierna MainScene: aquí solo se reenvía la petición hacia arriba.
-sub onRequestFullscreen()
-    m.top.fullscreenCnId = m.live.currentCnId
+' CU-12 — La barra superior vive y muere con el overlay.
+'
+' Y el foco NO puede quedarse en ella al ocultarse: si se queda en un nodo invisible, el mando
+' deja de responder. Por eso al ocultar el overlay el foco baja al contenido, que es quien tiene
+' el receptor de teclas de pantalla completa.
+sub onOverlayVisible()
+    visible = m.live.overlayVisible
+    m.navBar.visible = visible
+
+    if not visible and m.zone = m.ZONE_NAV
+        m.zone = m.ZONE_CONTENT
+        applyZone()
+    end if
 end sub
 
 ' Mi lista y Buscar son pantallas que se superponen a la pestana, no pestanas nuevas: asi el
@@ -126,9 +144,14 @@ sub onCatalogVersion()
     m.live.catalogVersion = m.top.catalogVersion
 end sub
 
-sub onResume()
-    m.live.syncCnId = m.top.resumeCnId
-    m.live.setFocus(true)
+sub onResumeLive()
+    m.live.resumeLive = m.top.resumeLive
+end sub
+
+sub onCatchupAnchor()
+    m.live.catchupAnchorCnId = m.top.catchupAnchorCnId
+    m.zone = m.ZONE_CONTENT
+    applyZone()
 end sub
 
 sub applyZone()
@@ -181,6 +204,11 @@ function onKeyEvent(key as string, press as boolean) as boolean
         end if
         return false
     end if
+
+    ' Con el overlay oculto la barra NO está dibujada, así que no se puede subir a ella: el foco
+    ' acabaría en un nodo invisible y el mando dejaría de responder. (En la práctica LiveScreen ya
+    ' se queda las flechas para zapear, pero el guard no sobra: es el fallo más caro de la app.)
+    if not m.live.overlayVisible then return false
 
     ' LiveScreen deja pasar el "arriba" cuando ya está en su zona más alta: ahí se sube a la barra.
     if key = "up" and m.zone = m.ZONE_CONTENT

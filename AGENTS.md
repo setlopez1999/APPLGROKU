@@ -1,7 +1,7 @@
 # TV-Visor Roku — Guía para Agentes
 
 > **Propósito**: cualquier agente (o desarrollador) que toque este repositorio lee este archivo primero.
-> **Última actualización**: 2026-09-21
+> **Última actualización**: 2026-10-12
 
 ## Qué es este proyecto
 
@@ -21,24 +21,39 @@ capas** y el **contrato con el backend**, no las clases del Kotlin.
 
 ## Estado actual
 
-**19 de 20 CU implementados**, con 393 tests en verde y la mayoría verificados en ejecución contra
-el backend de producción **y en un Roku Express real**. Bitácora detallada en `docs/PLAN.md` §10.
+**452 tests en verde**, lint limpio, y el recorrido completo verificado en un **Roku Express real**
+contra el backend de producción. Bitácora en `docs/PLAN.md` §10.
 
-Lo que queda: pulido visual, y cerrar el fleco del User-Agent `APPMOVIL` contra un ISP de Playcom
-(`plan_migracion.md` §8.5). No des nada por hecho sin verificarlo en `src/`.
+El 2026-10-12 el proyecto se alineó con `docs_final/` del rediseño Kotlin (25 CU, commit `f303b54`).
+Cambios de fondo de esa alineación, por si alguien busca lo viejo y no lo encuentra:
+
+- **Ya no hay `FullscreenPlayer`.** "TV en directo" es UNA pantalla con dos modos (overlay visible /
+  oculto). El vídeo no se corta al alternar. Ver `DISENO.md` §2.5.
+- **`CatchupPlayer`** sí es pantalla aparte, con avance/retroceso de 1/16 de la duración.
+- **Sesión persistente**: al arrancar con sesión guardada se entra directo a ver TV, sin login.
+- **Salir con doble ATRÁS** en 2 s, con aviso flotante.
+- **Reintento de reproducción cada 2 s, sin tope**, observando `Video.state`.
+- **Auto-ocultado del overlay a los 2 min**, y solo si el reproductor está en `playing`.
+
+Lo que queda: el fleco del User-Agent `APPMOVIL` contra un ISP de Playcom (`plan_migracion.md`
+§8.5), arte de marca definitivo y los requisitos de tienda (deep linking). No des nada por hecho sin
+verificarlo en `src/`.
 
 ## Jerarquía de fuentes de verdad (importante, en este orden)
 
 | Orden | Fuente | Qué aporta | Cómo tratarla |
 |---|---|---|---|
 | 1 | `docs/BACKEND-GOTCHAS.md` | Trampas del backend y del streaming verificadas en producción | **Dato duro.** Si algo lo contradice, gana esto |
-| 2 | `../app-lg/docs/cu/CU-01..20`, `MODELS.md`, `STATE.md`, `API.md` | Spec funcional **agnóstica del lenguaje** | La spec. Es lo que la app debe hacer |
-| 3 | `../app-lg-kotlin-rediseno/` (código + `docs/`) | **El diseño** (fuente de verdad visual) y cómo se resolvió cada CU | Referencia de producto y de solución |
+| 2 | `../app-lg-kotlin-rediseno/docs_final/` (9 documentos + 25 CU) | Spec funcional **agnóstica del lenguaje**, al día y verificada contra el producto | **La spec.** Es lo que la app debe hacer |
+| 3 | `../app-lg/docs/cu/CU-01..20`, `MODELS.md`, `STATE.md`, `API.md` | La spec del original. Útil cuando `docs_final/` no cubre un detalle | Complemento |
+| 3b | `../app-lg-kotlin-rediseno/` (código) | **El diseño** (fuente de verdad visual) | Referencia de producto |
 | 4 | `../app-lg/src/js/player.js`, `login.js`, `notifications.js` | El código original | Último recurso. **Verificar antes de citar** una línea |
 
-**Regla sobre los CU del Kotlin**: `app-lg-kotlin-rediseno/docs/cu/CU-XX.md` traen "Clases Kotlin" y
-"Dependencias Gradle". Eso es **referencia de cómo se resolvió**, no spec. La spec agnóstica son los
-CU de `app-lg`.
+**Regla sobre los docs del Kotlin**: `docs_final/` **sí** es spec agnóstica —lo dice su propio
+README y se cumple—, salvo la sección "Mapa en el código actual" con la que cierra cada archivo, que
+es referencia de cómo se resolvió en Kotlin. Los `docs/cu/` ANTIGUOS del Kotlin están desfasados
+(`REDISENO.md` es de agosto y todavía describe el `FullscreenPlayer` que se borró en septiembre):
+no usarlos.
 
 ## Decisiones de arquitectura ya tomadas (no volver a discutir sin razón nueva)
 

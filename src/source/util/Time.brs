@@ -69,3 +69,17 @@ function tvPad2(n as integer) as string
     if n < 10 then return "0" + Str(n).Trim()
     return Str(n).Trim()
 end function
+
+' Duración legible a partir de segundos: "M:SS" o "H:MM:SS". Para el reproductor de grabaciones.
+function tvFormatDuration(totalSec as integer) as string
+    if totalSec < 0 then totalSec = 0
+
+    horas = Int(totalSec / 3600)
+    minutos = Int((totalSec mod 3600) / 60)
+    segundos = totalSec mod 60
+
+    if horas > 0
+        return Str(horas).Trim() + ":" + tvPad2(minutos) + ":" + tvPad2(segundos)
+    end if
+    return Str(minutos).Trim() + ":" + tvPad2(segundos)
+end function

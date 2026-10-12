@@ -24,6 +24,9 @@
     <!-- Grabacion elegida: { url, titulo, cnId }. Vacio = no se eligio ninguna -->
     <field id="chosenCatchup" type="assocarray" alwaysNotify="true" />
     <field id="gridFocused" type="boolean" value="false" onChange="onGridFocusChanged" />
+    <!-- CU-10: al volver de una grabacion, posicionar la parrilla en LA FILA DE ESE CANAL, no en
+         la del canal que sigue sonando. Es de una sola vez: se consume al aplicarlo. -->
+    <field id="anchorCnId" type="integer" value="0" onChange="onAnchor" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/common/ChannelGrid.brs" />

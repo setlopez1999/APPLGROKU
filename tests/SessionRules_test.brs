@@ -49,4 +49,22 @@ sub testSessionRules()
     tvAssertEqual(tvLooksLikeEmail("@isp.tv"), false, "sin nada antes de la arroba")
     tvAssertEqual(tvLooksLikeEmail("a@@isp.tv"), false, "dos arrobas")
     tvAssertEqual(tvLooksLikeEmail("a@isp."), false, "sin nada después del punto")
+
+    tvSuite("SessionRules — CU-01 entrar sin pasar por el login")
+
+    ' Hacen falta las TRES cosas: el token identifica la sesión, pero el backend exige además el
+    ' password en claro en cada get-web2. Entrar sin él sería que la app te eche a los segundos.
+    tvAssertEqual(tvCanResumeSession("a@b.tv", "tok", "clave"), true, "con correo, token y clave se entra directo")
+    tvAssertEqual(tvCanResumeSession("", "tok", "clave"), false, "sin correo, no")
+    tvAssertEqual(tvCanResumeSession("a@b.tv", "", "clave"), false, "sin token, no")
+
+    ' El caso del medio: hay sesión pero NO password. Solo pasa con el registro a medias, y la
+    ' respuesta correcta es el login, no arrancar algo que va a fallar.
+    tvAssertEqual(tvCanResumeSession("a@b.tv", "tok", ""), false, "con sesión pero sin clave, al login")
+    tvAssertEqual(tvCanResumeSession("   ", "tok", "clave"), false, "un correo en blanco no cuenta")
+
+    ' Y lo que YA estaba: el asidero de sesión se borra al cerrar sesión, el deviceId no.
+    tvAssertEqual(tvShouldKeepKeyOnLogout("sessionToken", true), false, "el token NO sobrevive al cierre de sesión")
+    tvAssertEqual(tvShouldKeepKeyOnLogout("sessionEmail", true), false, "el correo de sesión tampoco")
+    tvAssertEqual(tvShouldKeepKeyOnLogout("deviceId", false), true, "el identificador del equipo sí: es del equipo, no de la cuenta")
 end sub

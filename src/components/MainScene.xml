@@ -30,6 +30,8 @@
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/CatalogRefresh.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Playback.brs" />
   <script type="text/brightscript" uri="pkg:/source/data/local/Session.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Overlay.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Device.brs" />
 
   <children>
     <Rectangle id="background" width="1920" height="1080" />
@@ -37,12 +39,30 @@
     <!-- ÚNICO nodo Video de toda la app, y va el primero para que quede DETRÁS de las pantallas.
          Uno solo porque el decodificador es un recurso único: dos reproductores a la vez y el
          segundo muere sin conseguirlo (docs/BACKEND-GOTCHAS.md §9). -->
-    <Video id="videoPlayer" width="1920" height="1080" visible="false" />
+    <!-- enableUI="false" NO es cosmetico: con la UI propia del nodo encendida, Roku pinta ENCIMA
+         su barra de titulo y su rueda de carga, que se solapan con el overlay de la app y con la
+         franja del canal. Se ven dos interfaces a la vez y la de Roku no sigue la marca del ISP.
+         Visto en el Roku Express el 2026-10-12. -->
+    <Video id="videoPlayer" width="1920" height="1080" visible="false" enableUI="false" />
 
     <Group id="screenStack" />
+
+    <!-- CU-01: espera del arranque con sesion guardada. Certificacion 3.4 de Roku: indicador
+         obligatorio si algo tarda mas de 3 s, y aqui se depende de una llamada de red. -->
+    <Label id="resuming" translation="[64,980]" width="1200" visible="false"
+           font="font:MediumSystemFont" text="Cargando tu sesión…" />
     <Group id="modalLayer">
       <AppModal id="appModal" visible="false" />
       <PinModal id="pinModal" visible="false" />
+
+      <!-- CU-25: el aviso del primer ATRAS. Es un aviso flotante, NO un dialogo con botones: un
+           dialogo obligaria a mover el foco y aceptar, tres pulsaciones para algo inmediato.
+           No recibe foco nunca. -->
+      <Group id="toastLayer" translation="[0,940]" visible="false">
+        <RoundedRect id="toastBg" translation="[610,0]" width="700" height="88" shape="pill" />
+        <Label id="toast" translation="[610,0]" width="700" height="88" horizAlign="center"
+               vertAlign="center" font="font:MediumSystemFont" />
+      </Group>
     </Group>
 
     <!-- Procesos de sesión (docs/arquitectura_flujo.md §2). En Roku NO hay cancelación automática:
@@ -52,6 +72,8 @@
     <Timer id="revalidateTimer" duration="60" repeat="true" />
     <!-- CU-18: en SceneGraph no hay aviso push de red, se sondea (docs/ROKU-GOTCHAS.md) -->
     <Timer id="networkTimer" duration="5" repeat="true" />
+    <!-- CU-25: cuanto dura en pantalla el aviso de "pulsa otra vez para salir" -->
+    <Timer id="toastTimer" duration="2" repeat="false" />
   </children>
 
 </component>

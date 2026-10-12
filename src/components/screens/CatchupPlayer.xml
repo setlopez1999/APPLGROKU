@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  CU-15 — Reproductor de GRABACIONES (programas ya emitidos).
+
+  Es una pantalla APARTE del canal en vivo, y eso es deliberado: tiene controles propios de avance
+  y retroceso que el directo no necesita.
+
+  No dibuja vídeo: el nodo Video es ÚNICO en la app y lo dibuja MainScene por detrás de la pila.
+  Al abrirse, el directo se DETIENE (no se pausa): estos aparatos tienen un solo decodificador por
+  hardware y pausar no lo libera, así que la grabación no arrancaría nunca aunque el servidor
+  respondiera 200 (05-REPRODUCCION).
+
+  El salto de avance/retroceso es UNA DIECISEISAVA PARTE de la duración, no un número fijo de
+  segundos: así es proporcionado tanto en una grabación de 20 minutos como en una de 3 horas.
+-->
+<component name="CatchupPlayer" extends="Group">
+
+  <interface>
+    <field id="videoNode" type="node" />
+    <!-- Grabación: { url, titulo, cnId } -->
+    <field id="catchup" type="assocarray" onChange="onStartCatchup" />
+    <!-- Canal de la grabación: la parrilla tiene que volver a SU fila al cerrar (CU-10) -->
+    <field id="anchorCnId" type="integer" value="0" />
+  </interface>
+
+  <script type="text/brightscript" uri="pkg:/components/screens/CatchupPlayer.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Time.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Device.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Http.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/ChannelAccess.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Catchup.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Playback.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Overlay.brs" />
+
+  <children>
+    <Group id="infoBar" translation="[0,790]">
+      <Rectangle id="infoBg" width="1920" height="290" />
+
+      <Poster id="logo" translation="[64,40]" width="120" height="80" />
+      <Label id="channelName" translation="[210,62]" font="font:MediumBoldSystemFont" />
+      <Label id="badge" translation="[1600,62]" width="256" horizAlign="right"
+             font="font:SmallSystemFont" text="GRABACIÓN" />
+
+      <Label id="title" translation="[64,146]" width="1792" font="font:LargeBoldSystemFont" />
+
+      <Rectangle id="progressTrack" translation="[64,212]" width="1792" height="8" />
+      <Rectangle id="progressFill" translation="[64,212]" width="0" height="8" />
+
+      <Label id="elapsed" translation="[64,234]" font="font:SmallSystemFont" />
+      <Label id="duration" translation="[1600,234]" width="256" horizAlign="right"
+             font="font:SmallSystemFont" />
+
+      <Label id="hint" translation="[64,0]" width="1792" horizAlign="center"
+             font="font:SmallSystemFont" text="◀ ▶ avanzar y retroceder   ·   ATRÁS para volver" />
+    </Group>
+
+    <Label id="status" translation="[64,60]" width="1792" font="font:MediumSystemFont" />
+
+    <!-- Certificación 3.4 de Roku -->
+    <Label id="loading" translation="[64,720]" width="900" font="font:MediumSystemFont"
+           visible="false" text="Cargando…" />
+
+    <!-- La barra se esconde sola, como en el directo -->
+    <Timer id="hideTimer" duration="5" repeat="false" />
+    <!-- Refresco del progreso -->
+    <Timer id="tickTimer" duration="1" repeat="true" />
+    <!-- CU-09: el reintento vale igual para las grabaciones -->
+    <Timer id="retryTimer" duration="2" repeat="false" />
+  </children>
+
+</component>

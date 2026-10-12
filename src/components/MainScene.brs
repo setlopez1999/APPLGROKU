@@ -41,7 +41,68 @@ sub init()
     m.pinModal = m.top.findNode("pinModal")
     m.pinModal.observeField("action", "onPinAction")
 
-    showIntro()
+    ' CU-25: instante del ultimo ATRAS en la raiz. 0 = no hay ninguno pendiente.
+    m.lastBackMs = 0&
+    m.toast = m.top.findNode("toast")
+    m.toast.color = m.brand.textPrimary
+    m.toastBg = m.top.findNode("toastBg")
+    m.toastBg.color = m.brand.surface
+    m.toastTimer = m.top.findNode("toastTimer")
+    m.toastTimer.observeField("fire", "onToastTimer")
+
+    bootstrap()
+end sub
+
+' ---- CU-01: arranque ---------------------------------------------------------
+'
+' La navegacion la decide LA SESION, no el flujo: si hay una guardada se entra directo a ver
+' television, sin bienvenida y sin login. Escribir con el mando es incomodo, y esa diferencia es la
+' que separa una app que se usa a diario de una que se abandona.
+sub bootstrap()
+    handle = tvSessionHandle()
+
+    if not tvCanResumeSession(handle.email, handle.token, handle.password)
+        showIntro()
+        return
+    end if
+
+    print "[TV] sesion guardada: entrando sin login"
+    m.resumeHandle = handle
+    showResuming()
+
+    ' Se revalida con el token. Si el backend dice que ya no vale, se cae al login — que es
+    ' exactamente el caso previsto en CU-01 ("hay sesion pero el token ya no vale").
+    url = tvApiGetWeb2Url(m.brand.baseUrl, handle.email, handle.password, tvSessionDeviceId(), m.brand.platform, handle.token)
+
+    m.resumeTask = CreateObject("roSGNode", "ApiTask")
+    m.resumeTask.observeField("response", "onResumeResponse")
+    m.resumeTask.request = tvApiRequest(url)
+    m.resumeTask.control = "RUN"
+end sub
+
+' Pantalla de espera mientras se revalida. Certificacion 3.4 de Roku: hay que mostrar indicador si
+' algo tarda mas de 3 s, y aqui se depende de una llamada de red.
+sub showResuming()
+    m.resumingLabel = m.top.findNode("resuming")
+    m.resumingLabel.color = m.brand.textSecondary
+    m.resumingLabel.visible = true
+end sub
+
+sub onResumeResponse()
+    m.resumingLabel.visible = false
+    response = m.resumeTask.response
+
+    ' Sin red no se echa al usuario al login: no poder preguntar no es lo mismo que el servidor
+    ' diciendo que no vales. Pero sin catalogo tampoco se puede mostrar television, asi que se
+    ' entra al login, que es la unica pantalla util sin datos.
+    if not response.ok or response.json = invalid or ResponseHasError(response.json)
+        print "[TV] sesion guardada: no sirve, al login"
+        tvSessionClear()
+        showLogin()
+        return
+    end if
+
+    enterApp({ userInfo: UserInfoFromJson(response.json), raw: response.json })
 end sub
 
 ' Flujo igual que el rediseno Kotlin: Intro -> Login -> Main (docs/DISENO.md 2.1).
@@ -102,10 +163,20 @@ end sub
 sub onLoginSuccess()
     session = m.stack[m.stack.Count() - 1].session
     if session = invalid then return
+    enterApp(session)
+end sub
 
+' El UNICO camino de entrada a la app. Lo usan el login y el arranque con sesion guardada, para que
+' no haya dos sitios que monten el estado y se vayan separando.
+sub enterApp(session as object)
     ' El estado de sesión vive en el nodo global: cualquier pantalla lo observa desde ahí, nadie se
     ' lo pasa a nadie (docs/arquitectura_flujo.md §3).
     m.global.session = session.userInfo
+
+    ' CU-03: el asidero de la sesion se guarda SIEMPRE, marque el usuario "recordarme" o no. Son
+    ' dos cosas distintas: esto es poder seguir hablando con el servidor en nombre del usuario;
+    ' "recordarme" es rellenarle el formulario cuando CIERRE sesion.
+    tvSessionSaveHandle(session.userInfo.userEmail, session.userInfo.token)
     m.global.isLoggedIn = true
 
     catalog = tvFlattenCatalog(session.raw)
@@ -117,7 +188,6 @@ sub onLoginSuccess()
     main = CreateObject("roSGNode", "MainScreen")
     main.videoNode = m.videoPlayer
     main.observeField("logout", "onLogout")
-    main.observeField("fullscreenCnId", "onRequestFullscreen")
     main.observeField("blockedReason", "onBlockedChannel")
     main.observeField("catchupTarget", "onRequestCatchup")
     m.mainScreen = main
@@ -149,41 +219,44 @@ sub onLogout()
     showLogin()
 end sub
 
-' ---- pantalla completa -------------------------------------------------------
+' ---- CU-15: reproductor de grabaciones ---------------------------------------
+'
+' Es la UNICA pantalla apilada sobre "TV en directo" que reproduce. El directo ya no tiene una
+' pantalla completa propia: es el mismo sitio con el overlay oculto (CU-12).
 
-sub onRequestFullscreen()
-    player = CreateObject("roSGNode", "FullscreenPlayer")
-    player.videoNode = m.videoPlayer
-    m.fullscreenPlayer = player
-
-    pushScreen(player, true)
-
-    ' El canal se pone DESPUÉS de apilar: al asignarlo se dispara onStartChannel, que ya necesita
-    ' el nodo Video puesto y la pantalla en el árbol.
-    player.startCnId = m.mainScreen.fullscreenCnId
-end sub
-
-' Abrir una GRABACION a pantalla completa. Mismo reproductor, distinta url.
 sub onRequestCatchup()
     destino = m.mainScreen.catchupTarget
     if destino = invalid then return
 
-    player = CreateObject("roSGNode", "FullscreenPlayer")
+    player = CreateObject("roSGNode", "CatchupPlayer")
     player.videoNode = m.videoPlayer
-    m.fullscreenPlayer = player
+    m.catchupPlayer = player
+
+    ' "TV en directo" deja de reaccionar al estado del reproductor mientras dure la grabacion: el
+    ' nodo Video es UNICO, y si no, los dos reintentos pelearian por el.
+    m.global.catchupActive = true
 
     pushScreen(player, true)
+
+    ' La grabacion se pone DESPUES de apilar: al asignarla arranca el video, y para eso la pantalla
+    ' ya tiene que estar en el arbol con su nodo Video puesto.
     player.catchup = destino
 end sub
 
-' Al salir, "TV en directo" tiene que quedarse en el canal al que se haya zapeado.
-sub syncAfterFullscreen()
-    if m.fullscreenPlayer = invalid then return
+' Al cerrar la grabacion hay que hacer DOS cosas, y ninguna es opcional (CU-10 y CU-15):
+'   - volver a PREPARAR el directo: se detuvo para liberar el decodificador, y un "reanudar" no
+'     hace nada sobre un reproductor detenido — el canal se quedaria negro
+'   - anclar la parrilla en la fila del canal DE LA GRABACION y devolver el foco a la grilla
+sub syncAfterCatchup()
+    if m.catchupPlayer = invalid then return
     if m.mainScreen = invalid then return
 
-    cnId = m.fullscreenPlayer.currentCnId
-    m.fullscreenPlayer = invalid
-    if cnId > 0 then m.mainScreen.resumeCnId = cnId
+    ancla = m.catchupPlayer.anchorCnId
+    m.catchupPlayer = invalid
+    m.global.catchupActive = false
+
+    m.mainScreen.resumeLive = true
+    if ancla > 0 then m.mainScreen.catchupAnchorCnId = ancla
 end sub
 
 ' ---- modales -----------------------------------------------------------------
@@ -259,6 +332,23 @@ sub onPinAction()
     if m.stack.Count() > 0 then m.stack[m.stack.Count() - 1].setFocus(true)
 end sub
 
+' ---- CU-25: aviso flotante ---------------------------------------------------
+
+sub showToast(texto as string)
+    m.toast.text = texto
+    m.top.findNode("toastLayer").visible = true
+    m.toastTimer.control = "stop"
+    m.toastTimer.control = "start"
+end sub
+
+sub onToastTimer()
+    m.top.findNode("toastLayer").visible = false
+
+    ' La ventana del doble ATRAS vence a la vez que el aviso: si el usuario no insistio, el
+    ' contador vuelve a empezar y el siguiente ATRAS vuelve a avisar en vez de cerrar.
+    m.lastBackMs = 0&
+end sub
+
 ' ---- CU-18: conectividad ------------------------------------------------------
 '
 ' SceneGraph no avisa por push de los cambios de red, asi que se sondea. El modal tiene guard
@@ -301,6 +391,8 @@ end sub
 ' ---- CU-17: revalidacion de sesion (cada 60 s) --------------------------------
 
 sub onRevalidate()
+    applyRefreshRhythm()
+
     userInfo = m.global.session
     if not tvHasSession(userInfo) then return
 
@@ -315,6 +407,23 @@ sub onRevalidate()
     m.revalidateTask.observeField("response", "onRevalidateResponse")
     m.revalidateTask.request = tvApiRequest(url)
     m.revalidateTask.control = "RUN"
+end sub
+
+' CU-04 — El ritmo se adapta: 60 s en el caso sano, 8 s mientras la pantalla esta DEGRADADA (sin
+' canal reproducible o sin guia). Reintentar seguido engancha la recuperacion en cuanto el servidor
+' vuelve; el caso sano, que es casi todo el tiempo, no paga ese coste.
+sub applyRefreshRhythm()
+    canales = m.global.channels
+    hayCanal = (canales <> invalid and canales.Count() > 0)
+    hayGuia = not m.global.guideDegraded
+
+    intervalo = tvRefreshIntervalSec(hayCanal, hayGuia)
+    if m.revalidateTimer.duration = intervalo then return
+
+    print "[TV] revalidacion: ritmo a "; intervalo; " s"
+    m.revalidateTimer.duration = intervalo
+    m.revalidateTimer.control = "stop"
+    m.revalidateTimer.control = "start"
 end sub
 
 sub onRevalidateResponse()
@@ -370,13 +479,27 @@ function onKeyEvent(key as string, press as boolean) as boolean
         ' llega aquí lo que nadie ha consumido.
         if m.stack.Count() > 1
             popScreen()
-            syncAfterFullscreen()
+            syncAfterCatchup()
             return true
         end if
 
-        ' En la raíz se devuelve false y el sistema cierra el canal. En Roku no hay "salir de la app"
-        ' propio y no conviene inventar un diálogo de confirmación (docs/ROKU-GOTCHAS.md §7).
-        return false
+        ' ---- CU-25: en la raiz, salir con DOBLE ATRAS ----
+        '
+        ' La confirmacion es por doble pulsacion y no por un dialogo con botones: un dialogo obliga
+        ' a mover el foco hasta "Si" y aceptar, o sea tres pulsaciones para algo que deberia ser
+        ' inmediato. Cerrar sin querer es de las cosas mas molestas que hace una app de TV.
+        '
+        ' Devolver `false` aqui es lo que cierra el canal: Roku lo interpreta como "nadie ha
+        ' consumido el ATRAS en la raiz".
+        ahora& = tvNowMs()
+        if tvShouldExitOnBack(ahora&, m.lastBackMs)
+            m.videoPlayer.control = "stop"
+            return false
+        end if
+
+        m.lastBackMs = ahora&
+        showToast(tvExitHintText())
+        return true
     end if
 
     return false

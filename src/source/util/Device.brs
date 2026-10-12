@@ -23,3 +23,13 @@ function tvDeviceUtcOffsetSec() as integer
     local.ToLocalTime()
     return Int(local.AsSeconds() - utcSeconds)
 end function
+
+' Reloj monótono en milisegundos, para medir ventanas cortas (el doble ATRÁS de CU-25).
+'
+' Se usa `roTimespan` y NO la hora del reloj: la hora del sistema puede saltar hacia atrás cuando
+' el aparato sincroniza con NTP, y con un salto así la ventana de 2 segundos daría negativa y el
+' usuario no podría cerrar el canal.
+function tvNowMs() as longinteger
+    if m.tvUptime = invalid then m.tvUptime = CreateObject("roTimespan")
+    return m.tvUptime.TotalMilliseconds()
+end function
