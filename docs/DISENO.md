@@ -64,6 +64,7 @@ Réplica exacta de `ui/theme/BrandConfig.kt`. **Un solo archivo**, generado por 
 | Token | Valor | Nota |
 |---|---|---|
 | `focusOutline` | **blanco puro**, fijo | Deliberadamente **no** usa el color de marca: el foco se ve igual en toda la app, estilo Netflix/YouTube |
+| `accentText` | acento mezclado **35 % hacia el blanco** | Texto en color de marca sobre superficies oscuras. Derivado y no crudo porque un acento oscuro (el verde de Oneplay) se lee justo sobre el gris de las celdas y uno claro se lee bien: derivarlo funciona con **cualquier** marca sin ajustar nada por ISP |
 | `focusBorderWidth` | 6 px | Grueso para que se note en TV |
 
 ### Formas redondeadas
@@ -78,8 +79,26 @@ donde la memoria de texturas escasea, eso evita una textura por cada combinació
 
 | Forma | Radio | Se usa en |
 |---|---|---|
-| `card` | 24 px | Tarjetas, campos, filas de la parrilla, celdas, paneles |
-| `pill` | 48 px | Píldoras de categoría, botones, filas del menú de cuenta |
+| `card` | 16 px | Tarjetas, campos, filas de la parrilla, celdas, paneles |
+| `pill` | 20 px | Píldoras de categoría, botones, filas del menú de cuenta |
+
+**Pastillas, no cápsulas.** El Kotlin declara 24 dp de radio, pero Compose lo **recorta a la mitad
+del lado menor**, así que el radio efectivo allí es mucho menor que el declarado. Copiar el 24 dp
+literal (48 px) daba óvalos: las esquinas se comían el lado recto entero. Ajustado mirando la tele.
+
+### Degradados
+
+SceneGraph **no tiene degradados**. Se generan como PNG en el build (`scripts/lib/image.js`), de
+2 px de ancho × una fila de píxeles por fila de pantalla, y el `Poster` los estira.
+
+La solución anterior —apilar rectángulos con alfa escalonada— **se veía a bandas en el aparato**:
+con 18 escalones cada salto de opacidad se distingue sobre el vídeo. Aquí el salto es de 1/255.
+
+| Degradado | Medida | Paradas de opacidad |
+|---|---|---|
+| Header | 420 px (210 dp) | 0.88 → transparente |
+| EPG | 270 px, desde y=538 | 0 · 0.30 · 0.60 · 0.88 · 1.0 — **no lineal**: se queda claro hasta el 35 % y luego oscurece deprisa, para no tapar el vídeo antes de tiempo |
+| **Izquierda** | 1920 px, horizontal | 1.0 en el borde · 0.60 al 40 % · transparente al 80 %. Es lo que hace legible el texto del canal sobre un vídeo claro |
 
 Siguen siendo `Rectangle` los velos a pantalla completa, las bandas de degradado y las barras de
 progreso: redondear algo de 4 px de alto no se ve, y un velo de 1920×1080 no tiene esquinas visibles.
@@ -155,7 +174,18 @@ detrás del overlay.
 **CategoryTabs**: píldoras horizontales; la activa es blanca con texto oscuro.
 
 **ChannelGrid**: una fila por canal; cada fila, un número **fijo** de celdas de programa —hasta 3
-pasadas (catch-up), la de AHORA, y 1 futura. **No** son celdas de ancho proporcional a la duración.
+pasadas (catch-up), la de AHORA, y 1 futura.
+
+**Solo se ven 3 celdas a la vez** y la fila se desplaza en horizontal para llegar al resto. Con las
+5 repartidas en el ancho disponible el título se cortaba a la tercera letra. Medidas del rediseño
+(1 dp = 2 px): columna de canal 320 px, paso de celda **(1920 − 64·2 − 320) / 3 = 490 px**, celda
+88 px de alto, fila 96 px. En reposo la celda de AHORA queda en la posición **central**; al mover
+el foco la fila se desplaza **lo mínimo** para traer la celda, nunca se recentra (recentrar movería
+toda la parrilla bajo el dedo del usuario). Reglas puras en `tvEpgFirstVisibleColumn` y
+`tvEpgScrollTo`, con tests.
+
+**El foco entra en la celda de AHORA**, no en la columna del canal: el usuario llega mirando lo que
+se está emitiendo. Igual que el rediseño (`enter = { nowCellFR }`). **No** son celdas de ancho proporcional a la duración.
 La ventana es maleable: si no hay datos pasados no se dibuja ninguna columna pasada, y todas las
 filas tienen el mismo ancho (las que faltan van vacías) para que la rejilla quede alineada.
 

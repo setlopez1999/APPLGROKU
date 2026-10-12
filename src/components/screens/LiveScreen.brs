@@ -111,6 +111,7 @@ end sub
 ' El velo del header no baja de 0.35 (el Kotlin lo apaga del todo a los 420 px): aquí el texto del
 ' canal quedaba sobre vídeo crudo y, con una imagen clara detrás, no se leía.
 sub buildFades()
+    m.top.findNode("leftFade").uri = "pkg:/images/fade_left.png"
     m.top.findNode("headerFade").uri = "pkg:/images/fade_header.png"
     m.top.findNode("epgFade").uri = "pkg:/images/fade_epg.png"
 end sub

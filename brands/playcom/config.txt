@@ -10,6 +10,15 @@ appname=Playcom
 # Badge corto junto al logo (país/edición). Vacío = no se muestra.
 badge=
 
+# IDENTIDAD DEL CANAL. Los dos tramos de en medio de tv.{proveedor}.{app_packet_name}.tv
+# Mismas claves que el rediseño Kotlin, donde componen el applicationId de Android.
+#
+# En Roku NO hay identificador de paquete —la identidad es el canal publicado en el Dashboard—,
+# pero estos dos campos SÍ tienen uso: dan nombre a la sección del registro del aparato. Sin
+# ellos, dos ISP sideloadeados en el mismo hueco de desarrollo comparten credenciales guardadas.
+proveedor=newgencdlatam
+app_packet_name=playcom
+
 # Versión mostrada (perfil) y versión del canal.
 version=1.0.0
 

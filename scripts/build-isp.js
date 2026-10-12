@@ -24,7 +24,7 @@ const fs = require('fs');
 const path = require('path');
 const { readProperties, brandValue, brandBool } = require('./lib/properties');
 const { solidPng, hexToRgb } = require('./lib/png');
-const { decodePng, logoOnBackground, verticalFadePng } = require('./lib/image');
+const { decodePng, logoOnBackground, stopsFadePng } = require('./lib/image');
 
 const ROOT = path.resolve(__dirname, '..');
 const ENV = path.join(ROOT, 'ENV');
@@ -157,8 +157,11 @@ const DERIVADAS = [
   { file: 'splash_fhd.png', w: 1920, h: 1080, cover: 0.34 },
   { file: 'splash_hd.png', w: 1280, h: 720, cover: 0.34 },
   { file: 'splash_sd.png', w: 720, h: 480, cover: 0.34 },
-  { file: 'brand_intro.png', w: 1280, h: 720, cover: 0.3 },
-  { file: 'brand_login.png', w: 1280, h: 720, cover: 0.3 },
+  // Los FONDOS van lisos, sin logo: la pantalla de intro y la de login YA dibujan el logo del ISP
+  // encima, y repetirlo difuminado detrás del panel se lee como un fallo de maquetación.
+  // Verificado en la tele el 2026-10-12.
+  { file: 'brand_intro.png', w: 1280, h: 720, cover: 0 },
+  { file: 'brand_login.png', w: 1280, h: 720, cover: 0 },
 ];
 
 // El icono del canal salia un CUADRADO DE COLOR en la pantalla de inicio del Roku: sin poder leer
@@ -179,7 +182,7 @@ for (const img of DERIVADAS) {
   // Lo que entregue el ISP manda: estas solo rellenan lo que falta.
   if (fs.existsSync(destino)) continue;
 
-  if (logo) {
+  if (logo && img.cover > 0) {
     fs.writeFileSync(destino, logoOnBackground(logo, img.w, img.h, oscuro, img.cover));
   } else {
     // Sin logo no hay nada que componer. Fondo de marca liso, nunca el color de acento a pantalla
@@ -191,12 +194,26 @@ for (const img of DERIVADAS) {
 
 // Degradados del overlay, como PNG de una fila por pixel. Antes se imitaban apilando rectangulos
 // con alfa escalonada y en el aparato se veian A BANDAS (docs/DISENO.md 1).
+//
+// Las paradas salen del rediseno Kotlin (ui/live/LiveScreen.kt), convertidas a pixeles de Roku:
+// 1 dp = 2 px. El del EPG NO es lineal a proposito — se queda claro hasta el 35% y despues
+// oscurece deprisa, para no tapar el video antes de tiempo.
+const veil = hexToRgb('#0B0B0D');
 const FADES = [
-  { file: 'fade_header.png', h: 538, from: 0.88, to: 0.35 },
-  { file: 'fade_epg.png', h: 160, from: 0.35, to: 1.0 },
+  // Header: 210 dp, de 0.88 a TRANSPARENTE (antes se quedaba en 0.35 y cerraba la pantalla).
+  { file: 'fade_header.png', len: 420, stops: [[0, 0.88], [1, 0]], horizontal: false },
+
+  // Velo del EPG: empieza 55 dp antes de que acabe el preview y llega a negro pleno 80 dp despues.
+  { file: 'fade_epg.png', len: 270, horizontal: false,
+    stops: [[0, 0], [0.35, 0.30], [0.60, 0.60], [0.80, 0.88], [0.90, 1], [1, 1]] },
+
+  // IZQUIERDA -> centro: es lo que hace legible el texto del canal sobre un video claro.
+  // Faltaba por completo en el canal de Roku.
+  { file: 'fade_left.png', len: 1920, horizontal: true,
+    stops: [[0, 1], [0.40, 0.60], [0.80, 0], [1, 0]] },
 ];
 for (const f of FADES) {
-  fs.writeFileSync(path.join(imagesDst, f.file), verticalFadePng(f.h, [0, 0, 0], f.from, f.to));
+  fs.writeFileSync(path.join(imagesDst, f.file), stopsFadePng(f.len, veil, f.stops, f.horizontal));
 }
 
 // ---- 4. BrandConfig.brs -------------------------------------------------------
@@ -220,6 +237,14 @@ function BrandConfig() as object
         appVersion: "${version}"
         ' Numero interno derivado, NUNCA escrito a mano: ver la validacion en build-isp.js.
         versionCode: ${versionCode}
+
+        ' ---- Identidad del canal (ENV/config.txt) ----
+        ' En Roku la identidad es el canal publicado, no un identificador de paquete. Pero estos
+        ' dos tramos dan nombre a la SECCION DEL REGISTRO: sin ellos, dos ISP sideloadeados en el
+        ' mismo hueco de desarrollo comparten las credenciales guardadas (visto al alternar entre
+        ' Oneplay y Playcom el 2026-09-21).
+        appId: "tv.${brandValue(cfg, 'proveedor', 'tv')}.${brandValue(cfg, 'app_packet_name', 'app')}.tv"
+        registrySection: "${brandValue(cfg, 'proveedor', 'tv')}_${brandValue(cfg, 'app_packet_name', 'app')}"
 
         ' ---- Backend (ENV/config.txt) ----
         baseUrl: "${baseUrl}"
@@ -279,9 +304,13 @@ function BrandConfig() as object
         controlSurface: "0x161619" + "72"
         controlSurfaceDisabled: "0x161619" + "4C"
 
-        ' ---- Formas (px de 1920x1080; equivalen a los dp del Kotlin x2) ----
-        cardRadius: 24
-        pillRadius: 48
+        ' ---- Formas (px de 1920x1080) ----
+        ' PASTILLAS, no ovalos. El Kotlin declara 24 dp de radio, pero Compose lo RECORTA a la
+        ' mitad del lado menor, asi que en una pildora de 72 px de alto el radio efectivo es 36.
+        ' Copiar el 48 literal daba capsulas: las esquinas se comian el lado recto entero.
+        ' 20 px deja una pastilla con esquina visible, que es lo que se pidio al verlo en la tele.
+        cardRadius: 16
+        pillRadius: 20
     }
     return m.__brandConfig
 end function

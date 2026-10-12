@@ -11,8 +11,12 @@
  * eso es la diferencia entre 2 imágenes y una por cada combinación de color y radio.
  *
  * Los radios salen de los mismos tokens que usa el código (docs/DISENO.md §0):
- *   tarjeta  24 px   (12 dp del Kotlin ×2)
- *   píldora  48 px   (24 dp del Kotlin ×2)
+ *   tarjeta  16 px   (celdas y paneles)
+ *   píldora  20 px   (botones y categorías)
+ *
+ * PASTILLAS, no óvalos: el Kotlin declara 24 dp, pero Compose recorta el radio a la mitad del
+ * lado menor, así que copiar el valor literal daba cápsulas con las esquinas comiéndose el lado
+ * recto entero. Ajustado al verlo en la tele.
  */
 
 const fs = require('fs');
@@ -24,8 +28,8 @@ const destino = path.join(ROOT, 'src', 'images');
 fs.mkdirSync(destino, { recursive: true });
 
 const FORMAS = [
-  { file: 'shape_card.9.png', radius: 24 },
-  { file: 'shape_pill.9.png', radius: 48 },
+  { file: 'shape_card.9.png', radius: 16 },
+  { file: 'shape_pill.9.png', radius: 20 },
 ];
 
 for (const forma of FORMAS) {

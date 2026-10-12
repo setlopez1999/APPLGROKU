@@ -40,7 +40,9 @@ function tvKeysToPreserveOnLogout(rememberMe as boolean) as object
     ' El PIN parental sobrevive SIEMPRE, igual que el deviceId. Si se borrase al cerrar sesion,
     ' cualquiera lo saltaria haciendo logout y volviendo a entrar, que es justo lo que un control
     ' parental tiene que impedir.
-    keys = ["deviceId", "parentalPin"]
+    ' "migrado" marca que el registro ya se trajo de la seccion antigua. Si se borrara al cerrar
+    ' sesion, la migracion se repetiria y resucitaria la sesion vieja que se acaba de cerrar.
+    keys = ["deviceId", "parentalPin", "migrado"]
     if rememberMe
         keys.Push("email")
         keys.Push("password")

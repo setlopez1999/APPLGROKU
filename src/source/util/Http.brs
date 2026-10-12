@@ -14,8 +14,11 @@ function tvStreamUserAgent() as string
     return "APPMOVIL-roku"
 end function
 
+' 30 s en conexion, lectura y escritura. Lo fija el contrato (03-API, regla 7) y no es un numero
+' al azar: estos backends tardan de verdad cuando el ISP tiene muchos canales, y con 15 s el login
+' fallaba con "error de conexion" en cuentas grandes aunque el servidor estuviera perfecto.
 function tvApiTimeoutMs() as integer
-    return 15000
+    return 30000
 end function
 
 ' Sonda del DVR: corta a propósito. Solo interesa si el directorio graba o no (§4, es binario).

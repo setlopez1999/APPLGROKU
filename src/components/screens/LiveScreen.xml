@@ -73,8 +73,14 @@
            apilando rectángulos con alfa escalonada y en el aparato SE VEÍAN A BANDAS: cada
            rectángulo era un escalón de opacidad visible sobre el vídeo. Aquí el escalón es de
            1/255. La textura mide 2 px de ancho y el Poster la estira a 1920 (DISENO.md §1). -->
-      <Poster id="headerFade" translation="[0,0]" width="1920" height="538" />
-      <Poster id="epgFade" translation="[0,538]" width="1920" height="160" />
+      <!-- IZQUIERDA -> centro, a pantalla completa y DEBAJO de los otros dos. Es lo que hace
+           legible el texto del canal sobre un vídeo claro, y faltaba por completo. -->
+      <Poster id="leftFade" translation="[0,0]" width="1920" height="1080" />
+      <!-- 210 dp del rediseño, hasta TRANSPARENTE (antes se quedaba en 0.35 y cerraba la imagen) -->
+      <Poster id="headerFade" translation="[0,0]" width="1920" height="420" />
+      <!-- Empieza 55 dp antes de que acabe el preview (0.60 × 1080 = 648) y llega a negro pleno
+           80 dp después. La curva no es lineal: ver scripts/build-isp.js -->
+      <Poster id="epgFade" translation="[0,538]" width="1920" height="270" />
 
       <!-- Zona sólida de la parrilla, desde donde termina el degradado -->
       <Rectangle id="gridBackground" translation="[0,698]" width="1920" height="382" />

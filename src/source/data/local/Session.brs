@@ -9,8 +9,40 @@
 ' memoria y se recarga de get-web2 al arrancar; el original lo metía entero en localStorage y ese
 ' JSON, en un ISP con muchos canales, se acerca al límite.
 
+' La seccion lleva el nombre del ISP (proveedor + cliente, de ENV/config.txt).
+'
+' Estaba fija en "tvvisor", y eso hacia que dos ISP sideloadeados en el mismo hueco de desarrollo
+' COMPARTIERAN registro: las credenciales recordadas de uno aparecian en el otro. En produccion
+' cada ISP es un canal distinto y no pasaria, pero al probar desconcierta bastante.
+function tvRegistrySectionName() as string
+    nombre = "tvvisor"
+    if m.global <> invalid and m.global.brand <> invalid
+        propia = m.global.brand.registrySection
+        if propia <> invalid and propia <> "" then nombre = propia
+    end if
+    return nombre
+end function
+
 function tvRegistrySection() as object
-    return CreateObject("roRegistrySection", "tvvisor")
+    nombre = tvRegistrySectionName()
+    seccion = CreateObject("roRegistrySection", nombre)
+
+    ' MIGRACION desde la seccion antigua, una sola vez.
+    '
+    ' Sin esto, renombrar la seccion deja la instalacion existente sin sesion y —lo grave— SIN
+    ' deviceId. El deviceId es del APARATO, no de la cuenta: si se regenera, el operador cuenta un
+    ' equipo nuevo y la cuenta agota su limite de dispositivos vinculados. Ya paso una vez.
+    if nombre <> "tvvisor" and not seccion.Exists("migrado")
+        vieja = CreateObject("roRegistrySection", "tvvisor")
+        for each clave in vieja.GetKeyList()
+            if not seccion.Exists(clave) then seccion.Write(clave, vieja.Read(clave))
+        end for
+        seccion.Write("migrado", "1")
+        seccion.Flush()
+        print "[TV] registro: migrado de 'tvvisor' a '"; nombre; "'"
+    end if
+
+    return seccion
 end function
 
 function tvRegistryRead(key as string, fallback = "" as string) as string

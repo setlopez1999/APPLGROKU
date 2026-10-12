@@ -13,7 +13,12 @@
 sub init()
     m.list = m.top.findNode("list")
     m.focusIndex = 0
-    m.cellIndex = -1   ' -1 = el foco esta en el canal, no en una celda
+
+    ' Columna de AHORA dentro de la fila. Es donde aterriza el foco al entrar en la parrilla: el
+    ' usuario llega mirando lo que se esta emitiendo, no una grabacion de hace tres horas.
+    ' Mismo comportamiento que el rediseno (`enter = { nowCellFR }` en ChannelGrid.kt).
+    m.nowColumn = 0
+    m.cellIndex = 0
     m.rows = []
 end sub
 
@@ -22,6 +27,10 @@ sub onDataChanged()
     if channels = invalid then return
 
     window = m.top.epgWindow
+
+    ' La de AHORA va justo despues de las pasadas: ese es su indice dentro de la fila.
+    m.nowColumn = 0
+    if window <> invalid and window.pastColumns <> invalid then m.nowColumn = window.pastColumns
 
     root = CreateObject("roSGNode", "ContentNode")
     m.rows = []
@@ -60,6 +69,7 @@ sub focusCurrentChannel()
         end if
     end for
 
+    m.cellIndex = m.nowColumn
     applyFocusIndex()
 end sub
 
@@ -112,7 +122,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "down"
         if m.focusIndex >= m.rows.Count() - 1 then return false   ' último: la tecla sube a LiveScreen
         m.focusIndex = m.focusIndex + 1
-        m.cellIndex = -1
+        m.cellIndex = m.nowColumn
         applyFocusIndex()
         return true
     end if
@@ -120,7 +130,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "up"
         if m.focusIndex <= 0 then return false                    ' primero: sale hacia las categorías
         m.focusIndex = m.focusIndex - 1
-        m.cellIndex = -1
+        m.cellIndex = m.nowColumn
         applyFocusIndex()
         return true
     end if
@@ -134,18 +144,21 @@ function onKeyEvent(key as string, press as boolean) as boolean
     end if
 
     if key = "left"
-        if m.cellIndex >= 0
+        if m.cellIndex > 0
             m.cellIndex = m.cellIndex - 1
             applyFocusIndex()
-            return true
         end if
-        return false   ' ya estaba en el canal: la tecla sale de la parrilla
+        ' En la primera columna no se sale de la parrilla: a la izquierda esta la columna del
+        ' canal, que es informativa y no recibe foco (regla 2 de DISENO.md 3).
+        return true
     end if
 
     if key = "OK"
         channels = m.top.channels
         if channels = invalid or m.focusIndex > channels.Count() - 1 then return true
         channel = channels[m.focusIndex]
+
+        ' Sobre la celda de AHORA (o cualquiera sin grabacion) se sintoniza el canal en vivo.
 
         ' Sobre una celda PASADA con grabacion comprobada se reproduce la grabacion; en cualquier
         ' otro caso se sintoniza el canal en vivo (docs/DISENO.md 2.4).

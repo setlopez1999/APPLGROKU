@@ -148,3 +148,80 @@ function tvIdInList(ids as object, id as integer) as boolean
     end for
     return false
 end function
+
+' ---- CU-14: la ventana VISIBLE de la parrilla --------------------------------
+'
+' La parrilla puede tener hasta 5 columnas, pero en pantalla solo caben 3 legibles. El resto se
+' alcanza desplazando la fila en horizontal, igual que el rediseno: con las 5 metidas a la fuerza
+' en el ancho disponible, cada celda queda tan estrecha que el titulo se corta a la tercera letra.
+'
+' Medidas tomadas del rediseno (ui/live/ChannelGrid.kt), 1 dp = 2 px:
+'   margen lateral 32 dp = 64 px     columna de canal 160 dp = 320 px
+'   paso de celda  = (1920 - 64*2 - 320) / 3 = 490 px
+function tvEpgVisibleColumns() as integer
+    return 3
+end function
+
+function tvEpgCellStride() as integer
+    return 490
+end function
+
+function tvEpgChannelColumnWidth() as integer
+    return 320
+end function
+
+' En reposo, la celda de AHORA se coloca en la posicion visible CENTRAL (la 1 de 0,1,2): asi se ve
+' lo anterior a la izquierda y lo siguiente a la derecha de un vistazo, que es como se lee una
+' parrilla de TV.
+function tvEpgRestSlot() as integer
+    return 1
+end function
+
+' Primera columna visible de la fila.
+'
+'   focusedCell = -1  -> la fila esta en reposo: se encuadra la de AHORA en la posicion central
+'   focusedCell >= 0  -> se desplaza lo MINIMO para que la celda enfocada quede dentro
+'
+' Desplazar lo minimo (y no recentrar siempre) es lo que hace que moverse por la fila se sienta
+' natural: recentrar en cada pulsacion mueve TODA la parrilla bajo el dedo del usuario.
+function tvEpgFirstVisibleColumn(focusedCell as integer, nowColumn as integer, totalColumns as integer) as integer
+    visibles = tvEpgVisibleColumns()
+    maximo = totalColumns - visibles
+    if maximo < 0 then maximo = 0
+
+    if focusedCell < 0
+        inicio = nowColumn - tvEpgRestSlot()
+    else
+        ' Ya esta dentro: no se mueve nada.
+        inicio = focusedCell - (visibles - 1)
+        if inicio < 0 then inicio = 0
+        if focusedCell < inicio then inicio = focusedCell
+    end if
+
+    if inicio < 0 then inicio = 0
+    if inicio > maximo then inicio = maximo
+    return inicio
+end function
+
+' La misma cuenta, pero conservando el desplazamiento actual cuando la celda enfocada ya se ve.
+' Es la que usa la fila: sin ella, cada movimiento del foco reencuadraria la parrilla entera.
+function tvEpgScrollTo(currentFirst as integer, focusedCell as integer, nowColumn as integer, totalColumns as integer) as integer
+    if focusedCell < 0 then return tvEpgFirstVisibleColumn(-1, nowColumn, totalColumns)
+
+    visibles = tvEpgVisibleColumns()
+    maximo = totalColumns - visibles
+    if maximo < 0 then maximo = 0
+
+    inicio = currentFirst
+    if inicio > maximo then inicio = maximo
+    if inicio < 0 then inicio = 0
+
+    ' Se salio por la izquierda
+    if focusedCell < inicio then inicio = focusedCell
+    ' Se salio por la derecha
+    if focusedCell > inicio + visibles - 1 then inicio = focusedCell - visibles + 1
+
+    if inicio < 0 then inicio = 0
+    if inicio > maximo then inicio = maximo
+    return inicio
+end function

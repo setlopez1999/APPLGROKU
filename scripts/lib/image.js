@@ -210,4 +210,37 @@ function verticalFadePng(height, [r, g, b], alphaTop, alphaBottom) {
   });
 }
 
-module.exports = { decodePng, boxResize, logoOnBackground, verticalFadePng };
+/**
+ * Degradado por PARADAS, vertical u horizontal.
+ *
+ * El del EPG en el rediseno NO es lineal: se queda claro hasta el 35% y despues oscurece deprisa
+ * (0.30 / 0.60 / 0.88 / 1.0). Un degradado lineal entre los mismos extremos tapa el video mucho
+ * antes y la pantalla se ve mas cerrada de lo que debe.
+ *
+ * `stops` es [[posicion 0..1, alfa 0..1], ...] en orden.
+ */
+function stopsFadePng(length, [r, g, b], stops, horizontal = false) {
+  const alphaAt = (t) => {
+    if (t <= stops[0][0]) return stops[0][1];
+    for (let i = 1; i < stops.length; i++) {
+      if (t <= stops[i][0]) {
+        const [p0, a0] = stops[i - 1];
+        const [p1, a1] = stops[i];
+        const k = p1 === p0 ? 0 : (t - p0) / (p1 - p0);
+        return a0 + (a1 - a0) * k;
+      }
+    }
+    return stops[stops.length - 1][1];
+  };
+
+  const w = horizontal ? length : 2;
+  const h = horizontal ? 2 : length;
+
+  return encode(w, h, (x, y) => {
+    const i = horizontal ? x : y;
+    const t = length <= 1 ? 0 : i / (length - 1);
+    return [r, g, b, Math.max(0, Math.min(255, Math.round(alphaAt(t) * 255)))];
+  });
+}
+
+module.exports = { decodePng, boxResize, logoOnBackground, verticalFadePng, stopsFadePng };

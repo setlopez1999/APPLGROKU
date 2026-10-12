@@ -76,4 +76,42 @@ sub testEpgGrid()
 
     tvAssertEqual(tvCurrentProgramIndex(invalid, ahora&), -1, "índice del actual con lista invalid")
     tvAssertEqual(tvProgramTimeRange(invalid), "", "rango de un programa invalid")
+
+    tvSuite("EpgGrid — CU-14 la ventana visible y el desplazamiento")
+
+    ' Con las 5 columnas metidas a la fuerza en el ancho, el título se corta a la tercera letra.
+    tvAssertEqual(tvEpgVisibleColumns(), 3, "solo 3 columnas caben legibles")
+    tvAssertEqual(tvEpgCellStride(), 490, "paso de celda del rediseño (1920-128-320)/3")
+    tvAssertEqual(tvEpgChannelColumnWidth(), 320, "columna del canal, 160 dp del rediseño")
+    tvAssertEqual(tvEpgRestSlot(), 1, "en reposo, AHORA va en la posición central")
+
+    tvSuite("EpgGrid — encuadre en reposo")
+
+    ' Con 5 columnas y AHORA en la 3: se ve la 2, la 3 y la 4.
+    tvAssertEqual(tvEpgFirstVisibleColumn(-1, 3, 5), 2, "AHORA queda en la posición central")
+
+    ' Si AHORA es la primera, no se puede desplazar a la izquierda de cero.
+    tvAssertEqual(tvEpgFirstVisibleColumn(-1, 0, 5), 0, "no se desplaza por debajo de la primera")
+
+    ' Ni más allá del final: con 5 columnas el máximo arranque es la 2.
+    tvAssertEqual(tvEpgFirstVisibleColumn(-1, 4, 5), 2, "no se desplaza más allá del final")
+
+    ' Menos columnas que posiciones visibles: todo a la vista, sin desplazar.
+    tvAssertEqual(tvEpgFirstVisibleColumn(-1, 1, 2), 0, "si caben todas, no se desplaza")
+
+    tvSuite("EpgGrid — desplazamiento mínimo al mover el foco")
+
+    ' Recentrar en cada pulsación movería TODA la parrilla bajo el dedo del usuario.
+    tvAssertEqual(tvEpgScrollTo(2, 3, 3, 5), 2, "si la celda enfocada ya se ve, no se mueve nada")
+    tvAssertEqual(tvEpgScrollTo(2, 2, 3, 5), 2, "el borde izquierdo visible tampoco mueve")
+    tvAssertEqual(tvEpgScrollTo(2, 4, 3, 5), 2, "el borde derecho visible tampoco mueve")
+
+    ' Salirse por un lado desplaza exactamente una columna, no más.
+    tvAssertEqual(tvEpgScrollTo(2, 1, 3, 5), 1, "salirse por la izquierda desplaza una columna")
+    tvAssertEqual(tvEpgScrollTo(0, 3, 3, 5), 1, "salirse por la derecha desplaza una columna")
+
+    ' Y nunca fuera de rango.
+    tvAssertEqual(tvEpgScrollTo(0, 4, 3, 5), 2, "la última columna encuadra en el tope")
+    tvAssertEqual(tvEpgScrollTo(9, 0, 3, 5), 0, "un desplazamiento imposible se acota")
+    tvAssertEqual(tvEpgScrollTo(0, -1, 3, 5), 2, "sin celda enfocada se vuelve al encuadre de reposo")
 end sub

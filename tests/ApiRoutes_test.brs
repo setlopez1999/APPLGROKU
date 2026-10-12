@@ -46,4 +46,32 @@ sub testApiRoutes()
 
     conSimbolos = tvApiGetWeb2Url("https://isp.tv/", "a b@isp.tv", "p@ss&1", "123", 12)
     tvAssert(Instr(1, conSimbolos, "pass=p%40ss%261") > 0, "la contraseña con símbolos viaja escapada")
+
+    tvSuite("ApiRoutes — el contrato de la capa de red (03-API)")
+
+    ' Regla 7 del contrato. Con 15 s el login fallaba con "error de conexión" en cuentas grandes
+    ' aunque el servidor estuviera perfecto.
+    tvAssertEqual(tvApiTimeoutMs(), 30000, "el tiempo de espera es de 30 segundos")
+
+    ' Regla 1: casi todo es POST con los parámetros en la URL. No es una API REST.
+    peticion = tvApiRequest("https://h/api/x")
+    tvAssertEqual(peticion.method, "POST", "por defecto es POST, incluso para consultar")
+
+    ' El User-Agent va en TODAS las llamadas, no solo en el vídeo: no cuesta nada y algunos ISP
+    ' lo exigen también en la API.
+    tvAssertEqual(Left(peticion.userAgent, 8), "APPMOVIL", "toda petición lleva el User-Agent")
+
+    ' El reporte al operador es GET y NO lleva el prefijo api/: el token es el primer segmento.
+    dash = tvApiDashboardUrl("https://h/", "TOK", 42)
+    tvAssertEqual(dash, "https://h/TOK/42.json", "el reporte va sin api/, con el token en la ruta")
+
+    ' Quitar un favorito es POST, no DELETE. Es el error clásico al integrar esta API.
+    tvAssert(Instr(1, tvApiDeleteFavoriteUrl("https://h/", "a@b.tv", 7), "api/delete-favorite") > 0, "quitar favorito usa delete-favorite")
+
+    ' Cerrar sesión no lleva body: el token va como parámetro.
+    tvAssert(Instr(1, tvApiDesvincularUrl("https://h/", "TOK"), "?token=TOK") > 0, "desvincular lleva el token en la URL")
+
+    ' El cn_id va como TEXTO en esta llamada, aunque sea numérico en el resto de la API.
+    body = tvApiChannelAllowedIpBody("1.2.3.4", 55)
+    tvAssert(Instr(1, body, Chr(34) + "55" + Chr(34)) > 0, "channel-allowed-ip manda el cn_id entrecomillado")
 end sub

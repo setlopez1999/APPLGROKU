@@ -10,7 +10,16 @@ sub init()
     m.logo = m.top.findNode("logo")
     m.number = m.top.findNode("number")
     m.name = m.top.findNode("name")
-    m.cellsGroup = m.top.findNode("cells")
+    m.viewport = m.top.findNode("cellsViewport")
+    m.track = m.top.findNode("cellsTrack")
+
+    ' RECORTE. Sin esto las celdas que quedan fuera de la ventana se dibujan encima de la columna
+    ' del canal y se salen por el borde derecho de la pantalla.
+    anchoVentana = tvEpgVisibleColumns() * tvEpgCellStride()
+    m.viewport.clippingRect = [0, 0, anchoVentana, 92]
+
+    m.firstColumn = 0
+    m.nowColumn = 0
 
     m.rowFocus.color = m.brand.focusOutline
     m.rowBg.color = m.brand.surface
@@ -33,36 +42,49 @@ sub onContentChanged()
     m.number.text = content.numero
     m.name.text = content.title
 
-    m.cellsGroup.removeChildrenIndex(m.cellsGroup.getChildCount(), 0)
+    m.track.removeChildrenIndex(m.track.getChildCount(), 0)
 
     cells = content.cells
     if cells = invalid then return
     if cells.Count() = 0 then return
 
-    ' Ancho DINÁMICO. El número de columnas cambia con los datos (de 1 a 5, ver EpgGrid), así que con
-    ' un ancho fijo las celdas se salían de la pantalla y la de AHORA quedaba cortada.
-    ' Verificado en el simulador el 2026-09-21 con 4 columnas.
-    disponible = CELLS_WIDTH() - (cells.Count() - 1) * CELL_SPACING()
-    ancho = Int(disponible / cells.Count())
-    if ancho < 120 then ancho = 120
+    ' Ancho FIJO por celda, no repartido entre todas: la fila se desplaza en horizontal, así que
+    ' las columnas no pueden encogerse para caber. Con 5 columnas repartidas el título se cortaba
+    ' a la tercera letra (visto en el Roku Express el 2026-10-12).
+    paso = tvEpgCellStride()
+    ancho = paso - CELL_GAP() * 2
 
-    for each cell in cells
-        nodo = buildCell(cell, ancho)
-        m.cellsGroup.appendChild(nodo)
+    ' Dónde está la celda de AHORA: es la que se encuadra cuando la fila está en reposo.
+    m.nowColumn = 0
+    for i = 0 to cells.Count() - 1
+        if cells[i] <> invalid and cells[i].esAhora
+            m.nowColumn = i
+            exit for
+        end if
+    end for
+
+    for i = 0 to cells.Count() - 1
+        nodo = buildCell(cells[i], ancho)
+        nodo.translation = [i * paso + CELL_GAP(), 0]
+        m.track.appendChild(nodo)
         m.cellNodes.Push(nodo)
     end for
 
+    m.firstColumn = tvEpgFirstVisibleColumn(-1, m.nowColumn, cells.Count())
+    applyScroll()
     onSelectedCellChanged()
 end sub
 
-' Espacio horizontal para las celdas: el ancho de la fila menos la zona del canal (logo+nº+nombre).
-function CELLS_WIDTH() as integer
-    return 1232
+' Hueco a cada lado de la celda dentro de su paso (4 dp del rediseño).
+function CELL_GAP() as integer
+    return 8
 end function
 
-function CELL_SPACING() as integer
-    return 12
-end function
+' Desplaza la pista de celdas para que la columna `m.firstColumn` quede pegada al borde izquierdo
+' de la ventana.
+sub applyScroll()
+    m.track.translation = [-m.firstColumn * tvEpgCellStride(), 0]
+end sub
 
 function buildCell(cell as object, ancho as integer) as object
     group = CreateObject("roSGNode", "Group")
@@ -72,14 +94,14 @@ function buildCell(cell as object, ancho as integer) as object
     marco.shape = "card"
     marco.translation = [-4, -4]
     marco.width = ancho + 8
-    marco.height = 96
+    marco.height = 88
     marco.color = m.brand.focusOutline
     marco.visible = false
 
     bg = group.createChild("RoundedRect")
     bg.shape = "card"
     bg.width = ancho
-    bg.height = 88
+    bg.height = 80
 
     ' Celda vacía: el canal no tiene programa en esa columna. Se dibuja igual para que la rejilla
     ' quede alineada, pero apagada y sin texto.
@@ -112,7 +134,7 @@ function buildCell(cell as object, ancho as integer) as object
     end if
 
     rango = group.createChild("Label")
-    rango.translation = [16, 48]
+    rango.translation = [16, 44]
     rango.width = ancho - 32
     rango.font = "font:SmallestSystemFont"
     rango.color = m.brand.textSecondary
@@ -121,13 +143,13 @@ function buildCell(cell as object, ancho as integer) as object
     ' Barra de progreso solo en la celda de AHORA.
     if cell.esAhora
         track = group.createChild("Rectangle")
-        track.translation = [16, 76]
+        track.translation = [16, 70]
         track.width = ancho - 32
         track.height = 4
         track.color = m.brand.surface
 
         fill = group.createChild("Rectangle")
-        fill.translation = [16, 76]
+        fill.translation = [16, 70]
         fill.width = Int(((ancho - 32) * cell.progreso) / 100)
         fill.height = 4
         fill.color = m.brand.liveNow
@@ -158,6 +180,17 @@ sub onSelectedCellChanged()
     if m.cellNodes = invalid then return
 
     seleccionada = content.selectedCell
+
+    ' La fila se desplaza lo MÍNIMO para traer la celda enfocada: recentrar en cada pulsación
+    ' movería toda la parrilla bajo el dedo del usuario. Cuando la fila pierde el foco vuelve al
+    ' encuadre de reposo, con AHORA en el centro.
+    if content.isSelected
+        m.firstColumn = tvEpgScrollTo(m.firstColumn, seleccionada, m.nowColumn, m.cellNodes.Count())
+    else
+        m.firstColumn = tvEpgFirstVisibleColumn(-1, m.nowColumn, m.cellNodes.Count())
+    end if
+    applyScroll()
+
     for i = 0 to m.cellNodes.Count() - 1
         marco = m.cellNodes[i].findNode("cellFocus")
         if marco <> invalid then marco.visible = (i = seleccionada and content.isSelected)

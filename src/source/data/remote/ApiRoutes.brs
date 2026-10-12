@@ -50,8 +50,14 @@ function tvApiChannelAllowedIpUrl(baseUrl as string) as string
 end function
 
 ' Body real: {ip, cn_id} — NO {user_id, channel_id, ip}, que es lo que decía una auditoría previa.
+' El cn_id va COMO TEXTO en esta llamada, aunque en el resto de la API sea numerico. Lo dice el
+' contrato (03-API, llamada 9) y no es un capricho: el backend compara cadenas aqui.
+'
+' Hoy no se ejecuta —ningun canal de los ISP actuales tiene restriccion=1— pero cuando un operador
+' la active tiene que funcionar a la primera, y un 403 por el tipo del campo se diagnostica fatal:
+' parece que la IP esta bloqueada cuando en realidad el canal ni se ha comprobado.
 function tvApiChannelAllowedIpBody(ip as string, cnId as integer) as string
-    return FormatJson({ ip: ip, cn_id: cnId })
+    return FormatJson({ ip: ip, cn_id: Str(cnId).Trim() })
 end function
 
 function tvApiMultiCdnUrl(baseUrl as string) as string

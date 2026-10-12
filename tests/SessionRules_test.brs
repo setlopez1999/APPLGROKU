@@ -17,14 +17,19 @@ sub testSessionRules()
     tvSuite("SessionRules — qué sobrevive al logout (CU-04)")
 
     sinRecordar = tvKeysToPreserveOnLogout(false)
-    tvAssertEqual(sinRecordar.Count(), 2, "sin recordarme sobreviven dos claves")
+    ' deviceId, parentalPin y la marca de registro migrado.
+    tvAssertEqual(sinRecordar.Count(), 3, "sin recordarme sobreviven tres claves")
     tvAssertEqual(sinRecordar[0], "deviceId", "el deviceId")
 
     ' Si el PIN parental se borrara al cerrar sesión, cualquiera lo saltaría haciendo logout
     tvAssertEqual(tvShouldKeepKeyOnLogout("parentalPin", false), true, "y el PIN parental, que si no se saltaría con un logout")
 
     conRecordar = tvKeysToPreserveOnLogout(true)
-    tvAssertEqual(conRecordar.Count(), 5, "con recordarme sobreviven cinco")
+    tvAssertEqual(conRecordar.Count(), 6, "con recordarme sobreviven seis")
+
+    ' Si "migrado" se borrara al cerrar sesión, la migración del registro se repetiría y
+    ' resucitaría la sesión vieja que el usuario acaba de cerrar.
+    tvAssertEqual(tvShouldKeepKeyOnLogout("migrado", false), true, "la marca de migración sobrevive siempre")
     tvAssertEqual(tvShouldKeepKeyOnLogout("email", true), true, "el email se conserva si hay recordarme")
     tvAssertEqual(tvShouldKeepKeyOnLogout("email", false), false, "y se borra si no lo hay")
 

@@ -3,10 +3,17 @@
   Una fila de la parrilla: el canal a la izquierda y sus celdas de programa a la derecha.
   Lo instancia el MarkupList de ChannelGrid (renderizado perezoso: solo las filas visibles).
 
-  Las celdas llegan ya construidas por domain/usecase/EpgGrid.brs — ancho FIJO por celda, no
-  proporcional a la duración (docs/DISENO.md §2.4).
+  SOLO SE VEN 3 CELDAS A LA VEZ, y la fila se desplaza en horizontal para llegar al resto. Antes
+  se repartían TODAS las columnas (hasta 5) en el ancho disponible y cada celda quedaba tan
+  estrecha que el título se cortaba a la tercera letra. Medidas del rediseño (1 dp = 2 px):
 
-  ⚠ NO VERIFICADO EN DISPOSITIVO.
+    columna del canal   160 dp = 320 px
+    paso de celda       (1920 − 64·2 − 320) / 3 = 490 px
+    alto de celda        44 dp =  88 px
+    alto de fila         48 dp =  96 px
+
+  El recorte lo hace `clippingRect` del Group: sin él, las celdas que quedan fuera de la ventana se
+  dibujarían encima de la columna del canal y se saldrían por el borde de la pantalla.
 -->
 <component name="ChannelRowItem" extends="Group">
 
@@ -15,16 +22,25 @@
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/common/ChannelRowItem.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Json.brs" />
+  <script type="text/brightscript" uri="pkg:/source/util/Time.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/model/Models.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Epg.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/Catchup.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/EpgGrid.brs" />
 
   <children>
-    <RoundedRect id="rowFocus" width="1792" height="112" visible="false" shape="card" />
-    <RoundedRect id="rowBg" translation="[3,3]" width="1786" height="106" shape="card" />
+    <RoundedRect id="rowFocus" width="1792" height="96" visible="false" shape="card" />
+    <RoundedRect id="rowBg" translation="[3,3]" width="1786" height="90" shape="card" />
 
-    <Poster id="logo" translation="[24,26]" width="90" height="60" />
-    <Label id="number" translation="[130,44]" font="font:SmallSystemFont" />
-    <Label id="name" translation="[200,40]" width="320" font="font:MediumSystemFont" />
+    <Poster id="logo" translation="[20,21]" width="80" height="54" />
+    <Label id="number" translation="[110,36]" font="font:SmallSystemFont" />
+    <Label id="name" translation="[158,32]" width="156" font="font:SmallSystemFont" />
 
-    <LayoutGroup id="cells" translation="[560,12]" layoutDirection="horiz" itemSpacings="[12]" />
+    <!-- Ventana de celdas: recorta a 3 columnas. Lo de dentro se desplaza en horizontal. -->
+    <Group id="cellsViewport" translation="[320,4]">
+      <Group id="cellsTrack" />
+    </Group>
   </children>
 
 </component>

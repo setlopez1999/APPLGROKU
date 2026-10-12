@@ -44,9 +44,9 @@
          Verificado en el simulador el 2026-09-21. -->
     <MarkupList id="list"
                 itemComponentName="ChannelRowItem"
-                itemSize="[1792,112]"
-                itemSpacing="[0,10]"
-                numRows="4"
+                itemSize="[1792,96]"
+                itemSpacing="[0,6]"
+                numRows="5"
                 vertFocusAnimationStyle="fixedFocus"
                 drawFocusFeedback="false" />
   </children>
