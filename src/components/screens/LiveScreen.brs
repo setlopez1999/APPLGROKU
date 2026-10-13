@@ -72,6 +72,7 @@ sub init()
     m.stallTimer = m.top.findNode("stallTimer")
     m.stallTimer.observeField("fire", "onStallTick")
     m.secondsOutOfPlaying = 0
+    m.lastBufferPct = -1
 
     ' El primer dibujado NO mueve el foco: nadie ha alternado nada todavía.
     applyOverlayMode(true, false)
@@ -730,19 +731,44 @@ sub onStallTick()
 
     if video.state = "playing"
         m.secondsOutOfPlaying = 0
+        m.lastBufferPct = -1
+        return
+    end if
+
+    ' El bufer AVANZA = el reproductor está trabajando y llegará solo. Recargar ahí tira a la basura
+    ' todo lo descargado y alarga el corte, que es exactamente lo que hacía la primera versión de
+    ' esto: 19 recargas en 5 minutos sobre un canal que se recuperaba solo (medido el 2026-10-13).
+    pct = bufferPercent(video)
+    progresa = tvBufferIsProgressing(pct, m.lastBufferPct)
+    m.lastBufferPct = pct
+
+    if progresa
+        m.secondsOutOfPlaying = 0
         return
     end if
 
     m.secondsOutOfPlaying = m.secondsOutOfPlaying + 1
-    if not tvShouldRecoverFromStall(video.state, m.secondsOutOfPlaying) then return
+    if not tvShouldRecoverFromStall(video.state, m.secondsOutOfPlaying, progresa) then return
 
-    print "[TV] atasco: "; m.secondsOutOfPlaying; " s en '"; video.state; "' — se fuerza la recarga"
+    print "[TV] atasco: "; m.secondsOutOfPlaying; " s en '"; video.state; "' sin llenar bufer — se fuerza la recarga"
     m.secondsOutOfPlaying = 0
+    m.lastBufferPct = -1
     m.status.text = "Reconectando…"
     m.loading.visible = true
     m.loadedUrl = ""
     playCurrent()
 end sub
+
+' Relleno del bufer en 0..100, o -1 si el reproductor no lo está reportando.
+'
+' `bufferingStatus` solo trae datos mientras hay relleno en curso; fuera de eso llega invalid, y
+' por eso no vale comparar a ciegas.
+function bufferPercent(video as object) as integer
+    estado = video.bufferingStatus
+    if estado = invalid then return -1
+    if estado.percentage = invalid then return -1
+    return Int(estado.percentage)
+end function
 
 sub onLoadingTimer()
     video = m.top.videoNode

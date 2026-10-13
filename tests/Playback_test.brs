@@ -78,15 +78,44 @@ sub testPlayback()
 
     ' El fallo más común de HLS en vivo NO avisa: el canal se queda en buffering, negro y mudo,
     ' sin código de error. Sin perro guardián no se recupera nunca.
-    tvAssertEqual(tvStallTimeoutSec(), 10, "se da por atascado a los 10 segundos")
-    tvAssertEqual(tvShouldRecoverFromStall("buffering", 3), false, "un bache corto se deja resolver solo")
-    tvAssertEqual(tvShouldRecoverFromStall("buffering", 10), true, "10 s sin arrancar: se fuerza la recarga")
-    tvAssertEqual(tvShouldRecoverFromStall("stopped", 12), true, "parado en seco también cuenta")
-    tvAssertEqual(tvShouldRecoverFromStall("finished", 12), true, "un directo que 'termina' es un atasco")
+    '
+    ' Pero el perro guardián TAMBIÉN puede ser el problema. Medido en el Roku Express el
+    ' 2026-10-13: con 10 s y mirando solo el estado se disparó 19 VECES EN 5 MINUTOS sobre un canal
+    ' que se recuperaba solo. Cada disparo = pantalla negra, sesión HLS nueva y búfer desde cero.
+    tvAssertEqual(tvStallTimeoutSec(), 30, "se da por atascado a los 30 segundos, no a los 10")
+
+    PARADO = false
+    LLENANDO = true
+
+    tvAssertEqual(tvShouldRecoverFromStall("buffering", 3, PARADO), false, "un bache corto se deja resolver solo")
+    tvAssertEqual(tvShouldRecoverFromStall("buffering", 15, PARADO), false, "15 s tampoco: un rebúfer normal dura eso")
+    tvAssertEqual(tvShouldRecoverFromStall("buffering", 30, PARADO), true, "30 s con el búfer plantado ya no es un bache")
+    tvAssertEqual(tvShouldRecoverFromStall("stopped", 35, PARADO), true, "parado en seco también cuenta")
+    tvAssertEqual(tvShouldRecoverFromStall("finished", 35, PARADO), true, "un directo que 'termina' es un atasco")
+
+    ' LA REGLA QUE FALTABA: mientras el búfer se llena, el reproductor está trabajando y llegará
+    ' solo. Recargar ahí tira lo ya descargado y ALARGA el corte.
+    tvAssertEqual(tvShouldRecoverFromStall("buffering", 30, LLENANDO), false, "si el búfer avanza no se toca, por mucho que tarde")
+    tvAssertEqual(tvShouldRecoverFromStall("buffering", 999, LLENANDO), false, "ni a los 16 minutos, mientras siga llenando")
 
     ' Reproduciendo no se toca nada: recargar un canal que va bien es el peor bug posible aquí.
-    tvAssertEqual(tvShouldRecoverFromStall("playing", 999), false, "reproduciendo NUNCA se recarga")
+    tvAssertEqual(tvShouldRecoverFromStall("playing", 999, PARADO), false, "reproduciendo NUNCA se recarga")
 
     ' Y que no compitan los dos caminos: el de error ya reintenta a los 2 s, que es más rápido.
-    tvAssertEqual(tvShouldRecoverFromStall("error", 30), false, "con error manda el reintento de 2 s")
+    tvAssertEqual(tvShouldRecoverFromStall("error", 60, PARADO), false, "con error manda el reintento de 2 s")
+
+    tvSuite("Playback — ¿el búfer avanza?")
+
+    tvAssertEqual(tvBufferIsProgressing(40, 25), true, "del 25% al 40%: avanza")
+    tvAssertEqual(tvBufferIsProgressing(26, 25), true, "un solo punto ya es avanzar")
+    tvAssertEqual(tvBufferIsProgressing(25, 25), false, "plantado en el mismo sitio: no avanza")
+    tvAssertEqual(tvBufferIsProgressing(10, 60), false, "retroceder tampoco es avanzar")
+
+    ' -1 = el reproductor no está reportando relleno. No saberlo NO es lo mismo que saber que
+    ' avanza: si contara como avance y el aparato no reportara nunca, el perro guardián quedaría
+    ' desactivado para siempre sin que nadie se enterara.
+    tvAssertEqual(tvBufferIsProgressing(-1, 25), false, "sin dato no se puede afirmar que avance")
+    tvAssertEqual(tvBufferIsProgressing(40, -1), false, "ni con el dato anterior ausente")
+    tvAssertEqual(tvBufferIsProgressing(-1, -1), false, "ni sin ninguno de los dos")
+
 end sub

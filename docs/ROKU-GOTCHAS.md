@@ -465,3 +465,40 @@ depuración ya no responde en Roku OS 14.
 `BrandConfig` declara `introUri` y `build-isp.js` copia el archivo, pero **ningún componente lo
 referencia**: `IntroScreen` está en la arquitectura de `PLAN.md` §2 y nunca se construyó. Hoy son
 7 KB de placeholder; con arte real es un archivo grande en cada build para nada.
+
+## 27. Un perro guardián de atascos mal calibrado CAUSA el problema que quiere arreglar
+
+Medido en un Roku Express el 2026-10-13. El watchdog original forzaba una recarga tras **10 s**
+fuera de `playing`, mirando solo el estado del reproductor. Resultado real:
+
+```
+19 recargas forzadas en 5 minutos
+```
+
+Cada recarga es `control="stop"` + contenido nuevo + `play`: **pantalla negra, sesión HLS nueva y
+búfer desde cero**. O sea que convertía un bache de 8 s en un corte de 15 s, y encima más visible.
+
+La prueba: con el watchdog desactivado, el mismo canal alternaba `buffer` -> `play` y **volvía solo
+cada vez**, sin ayuda. La recarga no arreglaba nada.
+
+Dos cosas estaban mal:
+
+1. **10 s es menos que un rebúfer normal.** En HLS en vivo sobre una red doméstica, un bache dura
+   entre 5 y 20 s. Cortar a los 10 garantiza disparar sobre baches que iban a resolverse.
+2. **El estado no distingue PARADO de LENTO.** `buffering` significa las dos cosas.
+
+La señal que sí las distingue es `Video.bufferingStatus.percentage`: si el relleno **sube**, el
+reproductor está trabajando y llegará; recargar ahí tira todo lo ya descargado. Si lleva plantado
+30 s, no va a llegar nunca.
+
+```brightscript
+' Solo se recarga si NO está llenando Y lleva 30 s fuera de playing
+function tvShouldRecoverFromStall(playerState, secondsOutOfPlaying, bufferProgressing) as boolean
+```
+
+Ojo con `bufferingStatus`: llega `invalid` cuando no hay relleno en curso. "No sé" **no cuenta como
+progreso** — si contara y un aparato no lo reportara nunca, el watchdog quedaría desactivado para
+siempre sin que nadie se enterara.
+
+**Regla general**: una recuperación automática que se dispara más a menudo que el fallo que
+arregla es un fallo peor. Antes de poner un umbral, hay que medir cuánto dura el caso normal.

@@ -460,3 +460,58 @@ En esta cuenta, **cero canales con catch-up real**. Sin la sonda, la app dibujar
 canales que fallarían todos al pulsarlos.
 
 **Ventanas de vivo cortas (§10) confirmadas**: todas las chunklists traen **4 segmentos**.
+
+## Medición del 2026-10-13 — por qué el canal se rebufera en un Roku Express
+
+El usuario reportó que el canal "se para, se pone negro, dice cargando y vuelve", una y otra vez.
+Se midieron las tres capas por separado, en paralelo, para no culpar a la equivocada.
+
+### 1. El origen está perfecto
+
+Monitorizando `failover-SRT/exitosa.stream` durante 3,7 min desde el PC:
+
+```
+37 segmentos producidos · 0 parones del origen
+ventana HLS: 4 segmentos, 23-25 s, EXTINF irregular (5,0 / 6,7)
+descarga: 48 s de vídeo en 2,5 s  ->  margen x19 (31-123 Mbps)
+```
+
+Nimble entrega en tiempo real y con muchísimo margen. **El origen no es el problema.**
+
+### 2. NINGÚN canal tiene ABR — una sola calidad, y es alta
+
+| Canal | Calidades | Bitrate | Resolución |
+|---|---|---|---|
+| Nativa | **1** | 1,81 Mbps | 1280x720 |
+| Exitosa TV | **1** | 3,30 Mbps | 1920x1080 |
+| Latina | **1** | 3,34 Mbps | 1920x1080 |
+| América TV | **1** | 4,40 Mbps | 1920x1080 |
+| ATV | **1** | 3,26 Mbps | 1440x1080 |
+| TV Perú / Willax | **1** | ~3,3 Mbps | 1920x1080 |
+| Old Music / kpop | **1** | ~3,27 Mbps | 1280x720 |
+
+Con una sola variante **el reproductor no puede bajar de calidad cuando la red aprieta**. No hay
+nada que un cliente pueda hacer: o entra el bitrate completo, o se rebufera.
+
+Llamativo: los canales musicales de 720p van a 3,27 Mbps, casi lo mismo que los de 1080p. Ahí hay
+bitrate regalado sin ganancia de imagen.
+
+### 3. El cuello de botella es el enlace del aparato
+
+El Roku Express 3930X es **solo 2,4 GHz** (`has-wifi-5G-support: false`). Mide ~14 Mbps, mientras
+el PC saca 31-123 Mbps contra el mismo origen. Y 2,4 GHz es a ráfagas: basta que baje de 3,3 Mbps
+unos segundos para vaciar una ventana de 23 s.
+
+**La prueba que lo cierra**, mismo aparato, misma red, con 10 minutos de diferencia:
+
+| Canal | Bitrate | 2,5 min de medición |
+|---|---|---|
+| Exitosa TV | 3,30 Mbps | búfer a CERO cada ~20 s, ~50% del tiempo rebuferando |
+| **Nativa** | **1,81 Mbps** | **ni un solo cambio de estado. Búfer lleno todo el rato** |
+
+### Qué se puede hacer, y dónde
+
+- **En el ISP (lo que de verdad lo arregla)**: publicar en Nimble una segunda variante de ~1 Mbps
+  a 480p/576p. Es el arreglo correcto y vale para cualquier aparato de gama baja, no solo Roku.
+  Nativa ya demuestra que a bitrate bajo el mismo equipo va perfecto.
+- **En la app**: no empeorarlo. Ver `ROKU-GOTCHAS.md` §27.

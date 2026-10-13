@@ -106,24 +106,51 @@ end function
 ' ---- CU-09: el atasco mudo ---------------------------------------------------
 '
 ' El reintento de `tvShouldRetryPlayback` solo cubre el caso en que el reproductor DICE que hay un
-' error. Pero el fallo más común en HLS en vivo no avisa: el canal se queda en `buffering` (o se
-' para en seco) y ahí se queda, negro y mudo, sin `errorCode` ni mensaje. Visto en el Roku Express
+' error. Pero el fallo mas comun en HLS en vivo no avisa: el canal se queda en `buffering` (o se
+' para en seco) y ahi se queda, negro y mudo, sin `errorCode` ni mensaje. Visto en el Roku Express
 ' el 2026-10-12: el usuario ve el canal pararse y no se recupera solo nunca.
 '
-' Por eso hace falta un perro guardián aparte: si el reproductor lleva demasiado tiempo FUERA de
+' Por eso hace falta un perro guardian aparte: si el reproductor lleva demasiado tiempo FUERA de
 ' `playing`, se fuerza una recarga aunque nadie haya reportado un error.
 '
-' 10 s y no menos: un cambio de canal y un bache normal de HLS tardan unos segundos, y recargar
-' encima de un buffering que iba a resolverse solo lo único que hace es alargar el corte.
+' PERO: medido en el aparato el 2026-10-13, la primera version de este perro guardian HACIA MAS
+' DANO QUE BIEN. Con 10 s y mirando solo el estado, se disparo 19 VECES EN 5 MINUTOS sobre un canal
+' que se recuperaba SOLO. Cada disparo detiene el reproductor y lo vuelve a preparar: pantalla
+' negra, sesion HLS nueva y bufer desde cero — justo lo contrario de lo que el usuario necesita.
+' Con el perro guardian apagado, el mismo canal alternaba reproducir/rellenar y volvia solo cada
+' vez. O sea que la recarga no arreglaba nada: alargaba el corte y lo hacia mas visible.
+'
+' La regla correcta distingue PARADO de LENTO, y para eso no basta el estado:
+
+' 30 s y no 10. Un rebufer normal de HLS en vivo dura entre 5 y 20 s en una red domestica; cortar a
+' los 10 convierte cada bache en una recarga completa. A los 30 s ya no es un bache: algo se rompio.
 function tvStallTimeoutSec() as integer
-    return 10
+    return 30
 end function
 
-function tvShouldRecoverFromStall(playerState as string, secondsOutOfPlaying as integer) as boolean
+' La senal que de verdad separa "atascado" de "lento": el bufer AVANZA.
+'
+' Mientras el porcentaje de relleno sube, el reproductor esta trabajando y llegara solo; recargar
+' ahi tira a la basura todo lo que ya habia descargado. Si el porcentaje lleva plantado 30 s, no va
+' a llegar nunca.
+'
+' -1 significa que el reproductor no esta reportando relleno. Eso NO cuenta como progreso: no
+' saberlo no es lo mismo que saber que avanza, y si no reportara nunca el perro guardian quedaria
+' desactivado para siempre sin que nadie se enterara.
+function tvBufferIsProgressing(percentNow as integer, percentBefore as integer) as boolean
+    if percentNow < 0 then return false
+    if percentBefore < 0 then return false
+    return percentNow > percentBefore
+end function
+
+function tvShouldRecoverFromStall(playerState as string, secondsOutOfPlaying as integer, bufferProgressing as boolean) as boolean
     if playerState = "playing" then return false
 
-    ' El camino de error ya reintenta a los 2 s, que es más rápido: que no compitan los dos.
+    ' El camino de error ya reintenta a los 2 s, que es mas rapido: que no compitan los dos.
     if playerState = "error" then return false
+
+    ' Esta llenando: dejarlo en paz.
+    if bufferProgressing then return false
 
     return secondsOutOfPlaying >= tvStallTimeoutSec()
 end function

@@ -27,7 +27,7 @@ sub testStreaming()
 
         hayAccion = false
         if estado = "error" and tvShouldRetryPlayback(url, 99) then hayAccion = true
-        if tvShouldRecoverFromStall(estado, fueraDePlaying)
+        if tvShouldRecoverFromStall(estado, fueraDePlaying, false)
             hayAccion = true
             recuperaciones = recuperaciones + 1
         end if
@@ -53,15 +53,23 @@ sub testStreaming()
     ' resolverse solo alarga el corte en vez de arreglarlo.
     recuperaAntesDeTiempo = 0
     for s = 0 to tvStallTimeoutSec() - 1
-        if tvShouldRecoverFromStall("buffering", s) then recuperaAntesDeTiempo = recuperaAntesDeTiempo + 1
+        if tvShouldRecoverFromStall("buffering", s, false) then recuperaAntesDeTiempo = recuperaAntesDeTiempo + 1
     end for
     tvAssertEqual(recuperaAntesDeTiempo, 0, "antes del umbral no se toca el reproductor")
-    tvAssertEqual(tvShouldRecoverFromStall("buffering", tvStallTimeoutSec()), true, "en el umbral sí")
+    tvAssertEqual(tvShouldRecoverFromStall("buffering", tvStallTimeoutSec(), false), true, "en el umbral sí")
+
+    ' Y la contraparte: mientras el búfer SE LLENE, no se recarga aunque se pase del umbral. Es lo
+    ' que convertía cada bache en una pantalla negra (medido en el aparato el 2026-10-13).
+    recargaLlenando = 0
+    for s = 0 to 600
+        if tvShouldRecoverFromStall("buffering", s, true) then recargaLlenando = recargaLlenando + 1
+    end for
+    tvAssertEqual(recargaLlenando, 0, "mientras el búfer se llena NUNCA se recarga")
 
     ' Y reproduciendo no se recarga nunca: sería el peor fallo posible aquí.
     recargaReproduciendo = 0
     for s = 0 to 600
-        if tvShouldRecoverFromStall("playing", s) then recargaReproduciendo = recargaReproduciendo + 1
+        if tvShouldRecoverFromStall("playing", s, false) then recargaReproduciendo = recargaReproduciendo + 1
     end for
     tvAssertEqual(recargaReproduciendo, 0, "un canal que va bien NUNCA se recarga")
 
