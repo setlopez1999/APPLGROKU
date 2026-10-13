@@ -496,25 +496,49 @@ nada que un cliente pueda hacer: o entra el bitrate completo, o se rebufera.
 Llamativo: los canales musicales de 720p van a 3,27 Mbps, casi lo mismo que los de 1080p. Ahí hay
 bitrate regalado sin ganancia de imagen.
 
-### 3. El cuello de botella es la RESOLUCION, no el bitrate ni la red
+### 3. La causa raiz NO esta identificada. Esto es lo medido
 
-> Correccion del mismo dia. La primera conclusion fue "es el bitrate" y **era falsa**: se comparo
-> Nativa (1,79 Mbps 720p, perfecta) contra Exitosa (3,32 Mbps 1080p, rota) sin darse cuenta de que
-> entre las dos cambiaban DOS cosas a la vez. Al medir un canal que las separa, se cayo.
+> Aviso: en este mismo dia se dieron DOS causas y las dos resultaron falsas al seguir midiendo.
+> Primero "es el bitrate" (lo tumbo Old Music: 3,26 Mbps sin cortes). Despues "es la resolucion"
+> (lo tumbo RPP: 720x480 y se corta igual). Se deja escrito para que nadie las repita.
 
-Comparacion controlada, mismo aparato, misma red, en el mismo cuarto de hora:
+Medicion en un Roku Express 3930X, cada canal lanzado por ECP y muestreando `/query/media-player`
+cada segundo. Los que fallan empiezan a fallar siempre en los primeros ~25 s.
 
-| Canal | Bitrate | Resolucion | Perfil | Ruta | Resultado |
-|---|---|---|---|---|---|
-| Nativa | 1,79 Mbps | **720p** | High@L3.1 | `nativa/` | **sin un corte en 2,5 min** |
-| Old Music | **3,26 Mbps** | **720p** | Main@L3.1 | `musicales/` | **sin un corte en 4 min** |
-| Exitosa TV | 3,32 Mbps | **1080p** | Main@L4.1 | `failover-SRT/` | corta cada ~20 s |
-| TV Peru | 3,32 Mbps | **1080p** | High@L4.0 | `cablered/` | corta cada ~20 s |
+| Canal | Bitrate | Resolucion | Segmentos | Resultado |
+|---|---|---|---|---|
+| **Nativa** | **1,81 Mbps** | 720p | regular 6,0 | **limpio 150 s, y otra vez 100 s 37 min despues** |
+| Old Music | 3,26 Mbps | 720p | regular 6,0 | limpio 62 s (medicion cortada ahi) |
+| Onda Digital | 3,30 Mbps | 1080p | regular 6,0 | limpio 70 s (medicion cortada ahi) |
+| RPP | 3,21 Mbps | **720x480** | irregular | **corta cada ~20 s** |
+| Exitosa TV | 3,32 Mbps | 1080p | irregular | corta cada ~20 s |
+| TV Peru | 3,32 Mbps | 1080p | irregular | corta cada ~20 s |
+| America TV | 4,39 Mbps | 1080p | **regular** | corta cada ~23 s |
 
-El bitrate esta igualado (3,26 vs 3,32) y el resultado es opuesto. La ruta del servidor cambia y da
-igual. El perfil de H.264 cambia y da igual. **Solo queda la resolucion.**
+Lo que estas filas **descartan**:
 
-### El mecanismo: se queda atras y la ventana lo deja fuera
+- **No es la red del local.** El origen entrega 48 s de video en 2,5 s contra el PC (margen x19-29),
+  con 0 parones en 3,7 min de vigilancia.
+- **No es el origen ni la ruta.** Fallan canales de `failover-SRT/`, `cablered/`, `nacional2/` y
+  `failover/`; funcionan los de `nativa/`, `musicales/` y `miscelaneos/`.
+- **No es la resolucion.** RPP es 720x480 —un octavo de los pixeles de 1080p— y se corta igual.
+- **No es el bitrate a secas.** Old Music (3,26) aguanta y RPP (3,21) no.
+- **No es la deriva de la red con el tiempo.** Nativa se midio limpia dos veces separadas 37 min,
+  con canales rotos en medio.
+- **No es el perfil de H.264.** Fallan Main@L4.1, High@L4.0 y High@L4.2 igual.
+
+Lo que queda **sin descartar**, y por tanto sin probar:
+
+- El ritmo irregular de segmentos (5,0/6,7 alternando) explica 6 de los 7 casos. **America TV es la
+  excepcion**: es regular y falla — aunque es tambien el mas pesado del catalogo con diferencia.
+- Un umbral de rendimiento del aparato en algun punto entre 1,8 y 3,2 Mbps. Las dos medidas limpias
+  por encima de 3 Mbps duraron solo 60-70 s cada una antes de cortarse, asi que **no estan
+  confirmadas** — aunque los canales que fallan fallan siempre antes de los 25 s.
+
+Para cerrarlo haria falta: tandas de 10+ min por canal, alternando canal bueno y malo varias veces,
+y repetir Old Music y Onda Digital sin interrumpir la medicion.
+
+### El mecanismo del corte (esto si esta medido)
 
 ```
 pos=58,8s   borde=125,1s   detras =  66 s
@@ -522,25 +546,18 @@ pos=76,2s   borde=155,2s   detras =  79 s
 pos=90,9s   borde=190,9s   detras = 100 s   <- crece
 ```
 
-El reproductor se va retrasando respecto al directo. La ventana HLS tiene **solo 4 segmentos
-(~24 s)**, asi que los trozos que necesita **caducan antes de que llegue a ellos** y tiene que
-saltar hacia delante — que es otro rebufer, que lo retrasa mas. No se estabiliza nunca.
+El reproductor se retrasa respecto al directo. La ventana HLS tiene **solo 4 segmentos (~24 s)**,
+asi que los trozos que necesita caducan antes de que llegue a ellos y tiene que saltar — que es
+otro rebufer. Por eso, una vez empieza, no se estabiliza nunca.
 
-Dos cosas que esto explica y que convienen saber:
+### Que hacer sin saber la causa
 
-- El Roku Express sale de fabrica **con la interfaz a 720p** (`ui-resolution`), asi que **esta
-  decodificando 1080p para reescalarlo a 720p**: paga el coste y no se ve mejor.
-- La ventana de 24 s es poco margen. Con una ventana mas larga el reproductor tendria sitio para
-  recuperar el retraso en vez de quedarse fuera.
+Lo unico que ha sobrevivido a todas las repeticiones es que **Nativa, el unico canal del catalogo
+por debajo de 3 Mbps, va perfecto en este aparato**. Asi que:
 
-Lo que NO esta probado: si el limite interno es el decodificador o algun otro punto de la cadena de
-Roku. No hace falta saberlo para actuar — la variable que hay que tocar es la misma.
-
-### Que se puede hacer, y donde
-
-- **En el ISP (lo que de verdad lo arregla)**: publicar en Nimble una **variante de 720p** junto a
-  la de 1080p. Con dos calidades el reproductor elige, y los aparatos de gama baja dejan de pelear.
-  Old Music ya demuestra que a 720p este mismo Roku aguanta 3,26 Mbps sin pestanear.
-- **Tambien en el ISP, barato**: alargar la ventana HLS por encima de los 24 s actuales, para que
-  un retraso puntual no deje al reproductor fuera del catalogo de segmentos.
-- **En la app**: no empeorarlo. Ver `ROKU-GOTCHAS.md` 27.
+- **ISP, lo principal**: publicar en Nimble una **segunda variante ligera (~1,5-2 Mbps)** junto a la
+  actual. Con dos calidades el reproductor elige; hoy hay UNA y no hay nada que elegir, asi que
+  ningun cliente puede hacer nada. Esto cubre las dos hipotesis que quedan vivas a la vez.
+- **ISP, barato y probablemente util**: igualar el GOP del codificador para que los segmentos salgan
+  regulares, y alargar la ventana HLS por encima de los 24 s actuales para dar margen de recuperacion.
+- **En la app**: no empeorarlo. Ver `ROKU-GOTCHAS.md` 27. Ya hecho y verificado.
