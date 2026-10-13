@@ -496,22 +496,51 @@ nada que un cliente pueda hacer: o entra el bitrate completo, o se rebufera.
 Llamativo: los canales musicales de 720p van a 3,27 Mbps, casi lo mismo que los de 1080p. Ahí hay
 bitrate regalado sin ganancia de imagen.
 
-### 3. El cuello de botella es el enlace del aparato
+### 3. El cuello de botella es la RESOLUCION, no el bitrate ni la red
 
-El Roku Express 3930X es **solo 2,4 GHz** (`has-wifi-5G-support: false`). Mide ~14 Mbps, mientras
-el PC saca 31-123 Mbps contra el mismo origen. Y 2,4 GHz es a ráfagas: basta que baje de 3,3 Mbps
-unos segundos para vaciar una ventana de 23 s.
+> Correccion del mismo dia. La primera conclusion fue "es el bitrate" y **era falsa**: se comparo
+> Nativa (1,79 Mbps 720p, perfecta) contra Exitosa (3,32 Mbps 1080p, rota) sin darse cuenta de que
+> entre las dos cambiaban DOS cosas a la vez. Al medir un canal que las separa, se cayo.
 
-**La prueba que lo cierra**, mismo aparato, misma red, con 10 minutos de diferencia:
+Comparacion controlada, mismo aparato, misma red, en el mismo cuarto de hora:
 
-| Canal | Bitrate | 2,5 min de medición |
-|---|---|---|
-| Exitosa TV | 3,30 Mbps | búfer a CERO cada ~20 s, ~50% del tiempo rebuferando |
-| **Nativa** | **1,81 Mbps** | **ni un solo cambio de estado. Búfer lleno todo el rato** |
+| Canal | Bitrate | Resolucion | Perfil | Ruta | Resultado |
+|---|---|---|---|---|---|
+| Nativa | 1,79 Mbps | **720p** | High@L3.1 | `nativa/` | **sin un corte en 2,5 min** |
+| Old Music | **3,26 Mbps** | **720p** | Main@L3.1 | `musicales/` | **sin un corte en 4 min** |
+| Exitosa TV | 3,32 Mbps | **1080p** | Main@L4.1 | `failover-SRT/` | corta cada ~20 s |
+| TV Peru | 3,32 Mbps | **1080p** | High@L4.0 | `cablered/` | corta cada ~20 s |
 
-### Qué se puede hacer, y dónde
+El bitrate esta igualado (3,26 vs 3,32) y el resultado es opuesto. La ruta del servidor cambia y da
+igual. El perfil de H.264 cambia y da igual. **Solo queda la resolucion.**
 
-- **En el ISP (lo que de verdad lo arregla)**: publicar en Nimble una segunda variante de ~1 Mbps
-  a 480p/576p. Es el arreglo correcto y vale para cualquier aparato de gama baja, no solo Roku.
-  Nativa ya demuestra que a bitrate bajo el mismo equipo va perfecto.
-- **En la app**: no empeorarlo. Ver `ROKU-GOTCHAS.md` §27.
+### El mecanismo: se queda atras y la ventana lo deja fuera
+
+```
+pos=58,8s   borde=125,1s   detras =  66 s
+pos=76,2s   borde=155,2s   detras =  79 s
+pos=90,9s   borde=190,9s   detras = 100 s   <- crece
+```
+
+El reproductor se va retrasando respecto al directo. La ventana HLS tiene **solo 4 segmentos
+(~24 s)**, asi que los trozos que necesita **caducan antes de que llegue a ellos** y tiene que
+saltar hacia delante — que es otro rebufer, que lo retrasa mas. No se estabiliza nunca.
+
+Dos cosas que esto explica y que convienen saber:
+
+- El Roku Express sale de fabrica **con la interfaz a 720p** (`ui-resolution`), asi que **esta
+  decodificando 1080p para reescalarlo a 720p**: paga el coste y no se ve mejor.
+- La ventana de 24 s es poco margen. Con una ventana mas larga el reproductor tendria sitio para
+  recuperar el retraso en vez de quedarse fuera.
+
+Lo que NO esta probado: si el limite interno es el decodificador o algun otro punto de la cadena de
+Roku. No hace falta saberlo para actuar — la variable que hay que tocar es la misma.
+
+### Que se puede hacer, y donde
+
+- **En el ISP (lo que de verdad lo arregla)**: publicar en Nimble una **variante de 720p** junto a
+  la de 1080p. Con dos calidades el reproductor elige, y los aparatos de gama baja dejan de pelear.
+  Old Music ya demuestra que a 720p este mismo Roku aguanta 3,26 Mbps sin pestanear.
+- **Tambien en el ISP, barato**: alargar la ventana HLS por encima de los 24 s actuales, para que
+  un retraso puntual no deje al reproductor fuera del catalogo de segmentos.
+- **En la app**: no empeorarlo. Ver `ROKU-GOTCHAS.md` 27.
