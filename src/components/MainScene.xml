@@ -32,6 +32,7 @@
   <script type="text/brightscript" uri="pkg:/source/data/local/Session.brs" />
   <script type="text/brightscript" uri="pkg:/source/domain/usecase/Overlay.brs" />
   <script type="text/brightscript" uri="pkg:/source/util/Device.brs" />
+  <script type="text/brightscript" uri="pkg:/source/domain/usecase/DeepLink.brs" />
 
   <children>
     <Rectangle id="background" width="1920" height="1080" />

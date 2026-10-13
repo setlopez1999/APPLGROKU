@@ -32,8 +32,11 @@
     <field id="adultUnlocked" type="boolean" value="false" onChange="onAdultUnlocked" />
     <!-- Ventana de celdas ya construida, para que Mi lista y Buscar la reutilicen sin recalcular -->
     <field id="epgWindow" type="assocarray" />
-    <!-- Reproducir este canal (lo piden Mi lista y Buscar) -->
-    <field id="playCnId" type="integer" value="0" onChange="onPlayRequested" />
+    <!-- Reproducir este canal (lo piden Mi lista, Buscar y los enlaces profundos) -->
+    <field id="playCnId" type="integer" value="0" alwaysNotify="true" onChange="onPlayRequested" />
+    <!-- Certificacion 5.1: canal con el que ARRANCAR, pedido por un enlace profundo en frio.
+         No se lee con un observador: lo consulta el primer paso del arranque. -->
+    <field id="startCnId" type="integer" value="0" />
 
     <!-- CU-12: el modo actual. MainScreen lo observa para ocultar la barra superior con él. -->
     <field id="overlayVisible" type="boolean" value="true" />

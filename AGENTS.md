@@ -34,10 +34,14 @@ Cambios de fondo de esa alineación, por si alguien busca lo viejo y no lo encue
 - **Salir con doble ATRÁS** en 2 s, con aviso flotante.
 - **Reintento de reproducción cada 2 s, sin tope**, observando `Video.state`.
 - **Auto-ocultado del overlay a los 2 min**, y solo si el reproductor está en `playing`.
+- **Enlaces profundos** (certificación 5.1/5.2): `Main(args)` en frío y `roInput` con la app
+  abierta. El `contentId` es el **`cn_id`**, nunca el número del canal: el número se repite entre
+  ISP y el operador lo reordena, así que un enlace guardado apuntaría a otro canal meses después.
+  `supports_input_launch=1` en el manifest es obligatorio. Ver `domain/usecase/DeepLink.brs`.
 
 Lo que queda: el fleco del User-Agent `APPMOVIL` contra un ISP de Playcom (`plan_migracion.md`
-§8.5), arte de marca definitivo y los requisitos de tienda (deep linking). No des nada por hecho sin
-verificarlo en `src/`.
+§8.5), arte de marca definitivo, la clave de firma y el material de ficha de tienda. No des nada
+por hecho sin verificarlo en `src/`.
 
 ## Jerarquía de fuentes de verdad (importante, en este orden)
 

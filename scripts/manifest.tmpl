@@ -15,3 +15,8 @@ splash_color={{splashColor}}
 splash_min_time=1000
 
 confirm_partner_button=1
+
+# Enlaces profundos con la app YA ABIERTA (certificacion 5.1/5.2).
+# Sin esta linea Roku REINICIA la app entera en cada enlace en vez de mandar el roInputEvent:
+# el video se corta, se vuelve a pasar por el arranque y el enlace tarda varios segundos.
+supports_input_launch=1

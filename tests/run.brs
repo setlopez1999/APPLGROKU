@@ -31,6 +31,7 @@ sub main()
     testEpgGrid()
     testOverlay()
     testStreaming()
+    testDeepLink()
 
     code = tvTestExitCode()
     if code <> 0 then throw "Hay tests en rojo"

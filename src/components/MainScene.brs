@@ -50,8 +50,79 @@ sub init()
     m.toastTimer = m.top.findNode("toastTimer")
     m.toastTimer.observeField("fire", "onToastTimer")
 
+    ' Certificacion 5.1/5.2 — el enlace profundo del ARRANQUE EN FRIO ya esta puesto: main.brs lo
+    ' deja en el nodo global ANTES de crear esta escena. Se guarda y lo aplica `enterApp`, que es
+    ' el unico momento en que existe un catalogo contra el que resolverlo.
+    m.pendingDeepLink = invalid
+    rememberDeepLink(m.global.deepLink)
+
+    ' Y el de la app YA ABIERTA, que main.brs recoge por roInput y deja en el mismo sitio.
+    m.global.observeField("deepLink", "onDeepLink")
+
     bootstrap()
 end sub
+
+' ---- certificacion 5.1/5.2: enlaces profundos --------------------------------
+'
+' La regla de oro es la que prueba el revisor de Roku: UN ENLACE QUE NO SIRVE NO PUEDE DEJAR LA APP
+' EN BLANCO. Pase lo que pase se arranca normal; como mucho se avisa.
+'
+' Hay dos momentos muy distintos y por eso hay dos caminos:
+'
+'   app cerrada  el enlace llega ANTES que la sesion y el catalogo. No hay nada contra lo que
+'                resolverlo, asi que se guarda y se aplica en `enterApp`. Ahi el canal pedido pasa
+'                a ser el canal INICIAL, en vez de sintonizar el primero y saltar al pedido: eso
+'                serian dos streams para una sola pulsacion, y Roku mide el tiempo hasta el primer
+'                fotograma (criterio 3.6, 8 s).
+'
+'   app abierta  hay catalogo, asi que se resuelve en el momento y se manda a la pantalla por el
+'                camino normal, el mismo que usan Buscar y Mi lista — con sus controles de acceso.
+
+sub onDeepLink()
+    enlace = m.global.deepLink
+
+    if not deepLinkIsValid(enlace)
+        ' Un enlace roto con la app abierta SI se avisa: el usuario acaba de pedir algo y merece
+        ' saber que no se pudo. En frio no, que seria un aviso sobre la bienvenida sin que el
+        ' usuario haya pedido nada — el arranque normal entra por aqui con reason = "none".
+        if enlace <> invalid and enlace.reason <> "none" and m.global.isLoggedIn
+            showToast(tvDeepLinkNotFoundText())
+        end if
+        return
+    end if
+
+    ' Todavia sin sesion: se guarda para cuando la haya. Si el usuario tiene que escribir el login,
+    ' el enlace sigue esperando y entra en cuanto termine.
+    if not m.global.isLoggedIn
+        rememberDeepLink(enlace)
+        return
+    end if
+
+    if m.mainScreen = invalid then return
+
+    if tvFindChannelByCnId(m.global.channels, enlace.cnId) = invalid
+        print "[TV] enlace profundo: el canal "; enlace.cnId; " no esta en el catalogo"
+        showToast(tvDeepLinkNotFoundText())
+        return
+    end if
+
+    print "[TV] enlace profundo con la app abierta: canal "; enlace.cnId
+    m.mainScreen.deepLinkCnId = enlace.cnId
+end sub
+
+sub rememberDeepLink(enlace as object)
+    if not deepLinkIsValid(enlace) then return
+    print "[TV] enlace profundo pendiente: canal "; enlace.cnId
+    m.pendingDeepLink = enlace
+end sub
+
+' `deepLink` es un campo del nodo global, asi que puede llegar como array vacio antes de que
+' main.brs lo rellene. No basta con comprobar invalid.
+function deepLinkIsValid(enlace as object) as boolean
+    if enlace = invalid then return false
+    if enlace.valid = invalid then return false
+    return enlace.valid
+end function
 
 ' ---- CU-01: arranque ---------------------------------------------------------
 '
@@ -185,8 +256,30 @@ sub enterApp(session as object)
 
     print "[TV] catalogo: "; catalog.channels.Count(); " canales reproducibles en "; catalog.sections.Count(); " categorias"
 
+    ' Certificacion 5.1 — el enlace profundo del arranque en frio se resuelve AQUI, que es el
+    ' primer instante en que hay un catalogo contra el que comprobarlo. Si el canal ya no existe
+    ' (lo quitaron del plan, o el enlace es de otro ISP) se arranca normal y se avisa: el enlace
+    ' guardado en un Roku sobrevive al canal al que apunta.
+    canalInicial = 0
+    enlaceRoto = false
+    if m.pendingDeepLink <> invalid
+        if tvFindChannelByCnId(catalog.channels, m.pendingDeepLink.cnId) <> invalid
+            canalInicial = m.pendingDeepLink.cnId
+            print "[TV] enlace profundo: se arranca en el canal "; canalInicial
+        else
+            print "[TV] enlace profundo: el canal "; m.pendingDeepLink.cnId; " no esta en el catalogo"
+            enlaceRoto = true
+        end if
+        m.pendingDeepLink = invalid
+    end if
+
     main = CreateObject("roSGNode", "MainScreen")
     main.videoNode = m.videoPlayer
+
+    ' ANTES de apilar: la pantalla reparte su arranque en pasos de 0,2 s y el canal inicial se
+    ' elige en el primero. Puesto aqui llega de sobra, y asi NO se sintoniza un canal para
+    ' cambiarlo acto seguido.
+    if canalInicial > 0 then main.startCnId = canalInicial
     main.observeField("logout", "onLogout")
     main.observeField("blockedReason", "onBlockedChannel")
     main.observeField("catchupTarget", "onRequestCatchup")
@@ -196,6 +289,9 @@ sub enterApp(session as object)
     m.catalogSignature = tvCatalogSignature(catalog.channels)
     m.heartbeatTimer.control = "start"
     m.revalidateTimer.control = "start"
+
+    ' Al final: el aviso se ve sobre la pantalla ya montada, no sobre el login que acaba de irse.
+    if enlaceRoto then showToast(tvDeepLinkNotFoundText())
 end sub
 
 sub onLogout()

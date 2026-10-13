@@ -49,6 +49,13 @@ sub init()
     m.pendingChannel = invalid
     m.utcOffset = tvDeviceUtcOffsetSec()
 
+    ' Certificación 5.1 — enlace profundo del arranque en frío. `directo` es el caso bueno: el
+    ' canal pedido ya es el inicial y solo falta dejar el vídeo limpio. `bloqueado` es el canal
+    ' pedido que necesita pack, PIN o validación de IP, y se resuelve al acabar el arranque por el
+    ' camino de siempre, que es el único que sabe pedirlos.
+    m.deepLinkDirect = false
+    m.deepLinkBlocked = invalid
+
     ' La url que está REALMENTE cargada en el reproductor. Es lo que permite no recargar cuando no
     ' hace falta: sin esto cada redibujado reinicia el vídeo y la imagen parpadea (CU-09).
     m.loadedUrl = ""
@@ -224,13 +231,67 @@ sub loadCatalog()
 
     m.filtered = m.channels
 
-    m.currentChannel = tvGetFirstAllowedChannel(m.channels, m.sections, premiumsActuales())
+    m.currentChannel = pickInitialChannel()
     if m.currentChannel <> invalid
-        print "[TV] primer canal permitido: "; m.currentChannel.nombre; " ("; m.currentChannel.numero; ")"
+        print "[TV] canal inicial: "; m.currentChannel.nombre; " ("; m.currentChannel.numero; ")"
     else
         print "[TV] NINGUN canal reproducible"
         m.status.text = "No hay canales disponibles"
     end if
+end sub
+
+' El canal con el que arranca la pantalla.
+'
+' Normalmente es el primero permitido (CU-05). Pero si la app se abrió con un ENLACE PROFUNDO, el
+' canal pedido tiene que ser EL PRIMERO que se sintoniza, no uno al que se salta después: arrancar
+' el primero y cambiar acto seguido son dos streams para una sola pulsación, y Roku cronometra el
+' tiempo hasta el primer fotograma (criterio 3.6, 8 s).
+'
+' Los controles de acceso NO se saltan, que es el riesgo entero de un enlace profundo: si el canal
+' pedido es de pago, de adultos o está restringido por IP, se arranca con el primero permitido y el
+' enlace se resuelve al final del arranque por `tuneWithAccessChecks`, que es el único camino que
+' sabe abrir el aviso de venta, pedir el PIN o consultar la IP.
+'
+' Que el canal exista ya lo comprobó MainScene contra el catálogo; la comprobación de aquí es por
+' si el catálogo cambió entre medias.
+function pickInitialChannel() as object
+    primero = tvGetFirstAllowedChannel(m.channels, m.sections, premiumsActuales())
+    if m.top.startCnId <= 0 then return primero
+
+    pedido = tvFindChannelByCnId(m.channels, m.top.startCnId)
+    if pedido = invalid then return primero
+
+    if tvResolveLaunchStep(pedido, m.sections, premiumsActuales(), m.global.adultUnlocked) = "play"
+        m.deepLinkDirect = true
+        return pedido
+    end if
+
+    print "[TV] enlace profundo: el canal pedido necesita permisos, se resuelve al arrancar"
+    m.deepLinkBlocked = pedido
+    return primero
+end function
+
+' Se llama al terminar el arranque, con la parrilla ya montada.
+'
+' Un enlace profundo entra EN EL CONTENIDO, no en la guía: eso es lo que significa el requisito
+' "launch directly into the content". Así que se deja el vídeo limpio, y la franja de 5 s dice a
+' qué canal se ha llegado (CU-13) — sin ella el usuario no sabría si el enlace funcionó.
+sub finishDeepLink()
+    if m.deepLinkDirect
+        m.deepLinkDirect = false
+        hideOverlay()
+        showStrip()
+        return
+    end if
+
+    if m.deepLinkBlocked = invalid then return
+
+    pedido = m.deepLinkBlocked
+    m.deepLinkBlocked = invalid
+
+    ' Si sale el aviso de venta o el PIN, el overlay se queda: ocultarlo dejaría al usuario
+    ' mirando un modal sobre un canal que no es el que pidió.
+    if tuneWithAccessChecks(pedido) then hideOverlay()
 end sub
 
 sub fetchGuide()
@@ -551,6 +612,10 @@ sub onBootStep()
         fetchGuide()
         fetchFavorites()
         m.bootTimer.control = "stop"
+
+        ' Al final del arranque y no antes: `hideOverlay` mueve el foco, y hacerlo con la parrilla
+        ' a medio construir lo deja en un nodo que todavía no está dibujado.
+        finishDeepLink()
     end if
 end sub
 

@@ -148,6 +148,27 @@ sub onResumeLive()
     m.live.resumeLive = m.top.resumeLive
 end sub
 
+' ---- certificacion 5.1/5.2: enlaces profundos --------------------------------
+
+sub onStartCnId()
+    m.live.startCnId = m.top.startCnId
+end sub
+
+' Enlace profundo con la app YA ABIERTA. Entra por el MISMO camino que Buscar y Mi lista
+' (`playCnId` -> `tuneWithAccessChecks`), que es el unico que pasa por los controles de acceso: un
+' enlace no puede ser el atajo que se salta el pack premium o el PIN de adultos.
+sub onDeepLinkCnId()
+    cnId = m.top.deepLinkCnId
+    if cnId <= 0 then return
+
+    ' Un enlace profundo lleva AL CONTENIDO: si habia una pantalla superpuesta o el menu de cuenta
+    ' abiertos, el usuario acabaria mirando el canal correcto a traves de un panel que el no abrio.
+    m.profileMenu.visible = false
+    closeTopScreen()
+
+    m.live.playCnId = cnId
+end sub
+
 sub onCatchupAnchor()
     m.live.catchupAnchorCnId = m.top.catchupAnchorCnId
     m.zone = m.ZONE_CONTENT

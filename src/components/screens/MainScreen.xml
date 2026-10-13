@@ -21,6 +21,14 @@
     <field id="blockedReason" type="string" alwaysNotify="true" />
     <field id="catchupTarget" type="assocarray" alwaysNotify="true" />
     <field id="adultUnlocked" type="boolean" value="false" onChange="onAdultUnlocked" />
+    <!-- Certificacion 5.1: canal con el que ARRANCAR, pedido por un enlace profundo en frio.
+         Se pone antes del primer paso del arranque de LiveScreen, para no sintonizar un canal y
+         cambiarlo acto seguido. -->
+    <field id="startCnId" type="integer" value="0" onChange="onStartCnId" />
+    <!-- Certificacion 5.2: enlace profundo con la app YA ABIERTA. `alwaysNotify` porque pedir dos
+         veces seguidas el mismo canal tiene que volver a entrar en el (es lo que prueba el
+         revisor de Roku), y sin el la segunda asignacion no avisaria. -->
+    <field id="deepLinkCnId" type="integer" value="0" alwaysNotify="true" onChange="onDeepLinkCnId" />
   </interface>
 
   <script type="text/brightscript" uri="pkg:/components/screens/MainScreen.brs" />

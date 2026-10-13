@@ -4,7 +4,10 @@
 ' con él el nodo Video — eso rompería el zapping y obligaría a recrear el decodificador en cada
 ' navegación, justo lo que docs/BACKEND-GOTCHAS.md §9 dice que hay que evitar.
 
-sub Main()
+' `args` trae el ENLACE PROFUNDO cuando la app no se abre desde su icono, sino desde el buscador
+' del Roku o desde un atajo del sistema (certificación 5.1/5.2, domain/usecase/DeepLink.brs).
+' En un arranque normal llega con los argumentos propios de Roku y ningún `contentId`.
+sub Main(args as dynamic)
     screen = CreateObject("roSGScreen")
     port = CreateObject("roMessagePort")
     screen.SetMessagePort(port)
@@ -52,15 +55,39 @@ sub Main()
         catchupActive: false
     })
 
+    ' El enlace profundo va aparte porque necesita `alwaysNotify` y `AddFields` (en plural) no lo
+    ' admite. Sin él, pedir DOS VECES SEGUIDAS el mismo canal no avisaría la segunda vez: el valor
+    ' no cambió. Y eso es exactamente lo que hace el revisor de Roku al probar los enlaces.
+    globalNode.AddField("deepLink", "assocarray", true)
+
+    ' ARRANQUE EN FRÍO. Se deja puesto ANTES de crear la escena, no después: así MainScene lo
+    ' encuentra ya ahí en su `init()` y puede entrar directamente al canal pedido. Si se asignara
+    ' después, habría una carrera con el arranque de la sesión.
+    globalNode.deepLink = tvParseDeepLink(args)
+
     screen.CreateScene("MainScene")
     screen.Show()
 
+    ' CANAL YA ABIERTO. Cuando la app está en marcha, Roku NO vuelve a llamar a Main: manda el
+    ' enlace como un `roInputEvent` a este objeto. Sin crearlo, un enlace recibido con la app
+    ' abierta se pierde sin dejar rastro — y es el caso que más se prueba en certificación,
+    ' porque es lo que pasa al volver al buscador del Roku sin cerrar la app.
+    '
+    ' Tiene que seguir VIVO todo el bucle: si se recogiera la basura, los eventos dejarían de
+    ' llegar y el fallo sería intermitente. Por eso es una variable del propio Main.
+    entrada = CreateObject("roInput")
+    entrada.SetMessagePort(port)
+
     while true
         msg = wait(0, port)
-        if type(msg) = "roSGScreenEvent"
+        tipo = type(msg)
+
+        if tipo = "roSGScreenEvent"
             ' Atrás en la pantalla raíz cierra el canal: en Roku no hay "salir de la app" propio
             ' y no conviene inventar un diálogo de confirmación (docs/ROKU-GOTCHAS.md §7).
             if msg.isScreenClosed() then return
+        else if tipo = "roInputEvent"
+            if msg.IsInput() then globalNode.deepLink = tvParseDeepLink(msg.GetInfo())
         end if
     end while
 end sub
