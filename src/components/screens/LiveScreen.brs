@@ -60,6 +60,7 @@ sub init()
     ' hace falta: sin esto cada redibujado reinicia el vídeo y la imagen parpadea (CU-09).
     m.loadedUrl = ""
     m.retryAttempts = 0
+    m.retryPending = false
 
     m.autoHideTimer = m.top.findNode("autoHideTimer")
     m.autoHideTimer.observeField("fire", "onAutoHide")
@@ -656,6 +657,7 @@ sub playCurrent()
 
     m.loadedUrl = m.currentChannel.streamUrl
     m.retryAttempts = 0
+    m.retryPending = false
     m.secondsOutOfPlaying = 0
     m.stallTimer.control = "start"
     syncCurrentChannelState()
@@ -684,12 +686,17 @@ sub onVideoState()
     estado = video.state
 
     if estado = "error"
-        m.loadingTimer.control = "stop"
-        m.loading.visible = false
-
         url = ""
         if m.currentChannel <> invalid then url = m.currentChannel.streamUrl
-        if not tvShouldRetryPlayback(url, m.retryAttempts) then return
+
+        ' El nodo Video emite "error" EN RÁFAGA mientras el stream no se pueda abrir: medidos ~170
+        ' eventos por segundo en el aparato. Sin este guard, todo lo de abajo se ejecuta 170 veces
+        ' por segundo en el hilo de render (y llena el log a 5.000 líneas en 38 s).
+        if not tvShouldStartRetry(estado, m.retryPending, url) then return
+        m.retryPending = true
+
+        m.loadingTimer.control = "stop"
+        m.loading.visible = false
 
         m.retryAttempts = m.retryAttempts + 1
         print "[TV] reproduccion: error, reintento "; m.retryAttempts; " en 2 s"
@@ -704,6 +711,7 @@ sub onVideoState()
         m.loading.visible = false
         m.status.text = ""
         m.retryAttempts = 0
+        m.retryPending = false
         return
     end if
 
@@ -777,6 +785,8 @@ sub onLoadingTimer()
 end sub
 
 sub onRetryTimer()
+    ' Se libera el guard de la ráfaga: a partir de aquí, un error nuevo vuelve a contar.
+    m.retryPending = false
     if m.currentChannel = invalid then return
 
     ' Se fuerza la recarga: el reproductor está en error, no en un estado del que se pueda reanudar.

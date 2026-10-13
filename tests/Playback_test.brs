@@ -74,6 +74,33 @@ sub testPlayback()
 
     tvAssertEqual(tvResolveLaunchStep({ streamUrl: "", sectionId: 10 }, r.sections, conPack, false), "unplayable", "sin url no se intenta nada")
 
+    tvSuite("Playback — CU-09 el error llega EN RÁFAGA")
+
+    ' El nodo Video no emite "error" una vez: lo emite cientos de veces por segundo mientras el
+    ' stream no se pueda abrir. Medido en el Roku Express el 2026-10-13 con un canal cuya url
+    ' apuntaba a un equipo inalcanzable: 5.130 eventos en 38 s, unos 170 por segundo.
+    url = "https://h:1936/c/playlist.m3u8"
+    LIBRE = false
+    PENDIENTE = true
+
+    tvAssertEqual(tvShouldStartRetry("error", LIBRE, url), true, "el PRIMER error dispara el reintento")
+    tvAssertEqual(tvShouldStartRetry("error", PENDIENTE, url), false, "los de la ráfaga se ignoran: ya hay uno en camino")
+
+    ' Si la ráfaga pasara el guard, todo lo demás (texto de estado, reinicio del temporizador,
+    ' log) se ejecutaría 170 veces por segundo EN EL HILO DE RENDER, compitiendo con el vídeo.
+    pasan = 0
+    for i = 1 to 170
+        if tvShouldStartRetry("error", PENDIENTE, url) then pasan = pasan + 1
+    end for
+    tvAssertEqual(pasan, 0, "170 errores seguidos y ni uno pasa mientras hay reintento pendiente")
+
+    ' Y con el guard libre vuelve a contar: no se queda mudo para siempre.
+    tvAssertEqual(tvShouldStartRetry("error", LIBRE, url), true, "liberado el guard, el siguiente error sí cuenta")
+
+    tvAssertEqual(tvShouldStartRetry("playing", LIBRE, url), false, "reproduciendo no se reintenta nada")
+    tvAssertEqual(tvShouldStartRetry("buffering", LIBRE, url), false, "un bache no es un error")
+    tvAssertEqual(tvShouldStartRetry("error", LIBRE, ""), false, "y una url vacía no se reintenta nunca")
+
     tvSuite("Playback — CU-09 el atasco mudo (sin errorCode)")
 
     ' El fallo más común de HLS en vivo NO avisa: el canal se queda en buffering, negro y mudo,

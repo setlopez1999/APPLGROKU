@@ -103,6 +103,28 @@ function tvResolveLaunchStep(channel as object, sections as object, premiumsAllo
     return "play"
 end function
 
+' ---- CU-09: el error llega EN RAFAGA ----------------------------------------
+'
+' El nodo Video no emite "error" una vez: lo emite cientos de veces por segundo mientras el stream
+' siga sin poder abrirse. Medido en un Roku Express el 2026-10-13 con un canal cuya url apuntaba a
+' un equipo inalcanzable: **5.130 eventos de error en 38 s**, o sea unos 170 por segundo.
+'
+' El reintento en si estaba bien limitado —el temporizador de 2 s solo dejo pasar 15 recargas
+' reales—, pero TODO lo demas corria 170 veces por segundo en el hilo de render: reescribir el
+' texto de estado, reiniciar el temporizador y escribir en el log. En un aparato de gama baja eso
+' compite con la decodificacion del propio video.
+'
+' Por eso solo el PRIMER error de cada ciclo cuenta. Los de la rafaga se ignoran hasta que el
+' reintento pendiente se resuelva.
+function tvShouldStartRetry(playerState as string, retryPending as boolean, streamUrl as string) as boolean
+    if playerState <> "error" then return false
+
+    ' Ya hay un reintento en camino: la rafaga no aporta nada.
+    if retryPending then return false
+
+    return tvShouldRetryPlayback(streamUrl, 0)
+end function
+
 ' ---- CU-09: el atasco mudo ---------------------------------------------------
 '
 ' El reintento de `tvShouldRetryPlayback` solo cubre el caso en que el reproductor DICE que hay un
